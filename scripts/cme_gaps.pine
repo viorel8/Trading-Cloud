@@ -1,0 +1,40 @@
+//@version=5
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+
+title = 'CME'
+stitle = 'CME GAPS'
+
+indicator(title, stitle, 1, format.price, 0)
+
+showReal = input(false, '[On]Chart Price | [Off] CME Price')
+showClean = input(true, 'Only Show Weekend Gaps (Cleaner But Misses Holidays/Etc.)')
+hi_chews = input(false, 'Show +/-1% From Close')
+
+not_in_sess = na(request.security('CME:BTC1!', timeframe.period, close, gaps=barmerge.gaps_on))
+in_sess = request.security('CME:BTC1!', timeframe.period, close, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_on)
+
+cmePrice = ta.valuewhen(not_in_sess, in_sess, 0)
+chartPrice = ta.valuewhen(not_in_sess and ta.change(cmePrice), open, 0)
+price = showReal ? chartPrice : cmePrice
+
+
+// Only plot it when CME futures are not in session over the weekend and the current chart uses UTC.
+// Does not account for trading breaks during the weekdays, even if they are caused by hitting the limit breaker or holidays
+only_wkend = (syminfo.timezone == 'Etc/UTC' or syminfo.type == 'crypto' or syminfo.type == 'index') and (hour >= 21 and dayofweek == 6 or dayofweek == 7 or hour < 22 and dayofweek == 1) ? true : false
+
+derty = showClean ? only_wkend : not_in_sess ? true : false
+
+blue = #077EFB
+pink = #d1d4dc
+green = #d1d4dc
+peach = #FFD831
+
+
+a = plot(derty ? price : na, 'CME Gap', color.new(blue, 100), 1, plot.style_linebr)
+b = plot(derty ? hlc3 : na, ' ', color.new(blue, 100), 1, plot.style_linebr, display=display.none, editable=false)
+
+plot(derty and hi_chews ? price * 1.01 : na, '+1%', color.new(peach, 0), 2, plot.style_linebr)
+plot(derty and hi_chews ? price * 0.99 : na, '-1%', color.new(peach, 0), 2, plot.style_linebr)
+
+fill(a, b, close > price ? green : pink, transp=70)

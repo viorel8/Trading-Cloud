@@ -1,0 +1,294 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Jo-Pippin
+
+//@version=5
+indicator("Actinic Rays of Destiny", overlay = true, max_bars_back = 500)
+
+inp_tf                       = input.string("Week", options = ["Day","Week", "Month", "Year","Quarterly"], title = "Lookback", group = "Global Settings")
+tf_sel                       = inp_tf == "Day" ? "D" : inp_tf == "Week" ? "W" : inp_tf == "Month" ? "M" : inp_tf == "Year" ? "12M" : inp_tf == "Quarterly" ? "3M" : na
+show_Lines                   = input.bool(false, 'Show Connecting Lines', group = "Global Settings")
+show_zones                   = input.bool(true, 'Show Saber Light Beams', group = "Global Settings")
+show_yearly                  = input.bool(true, 'Show Open Globes' , group = "Global Settings")
+globe_size                   = input.bool(true, 'Tiny Open Light Source' , group = "Global Settings")
+globe_size1                  = input.bool(true, 'Small Open Light Source' , group = "Global Settings")
+globe_size2                  = input.bool(false, 'Normal Open Light Source' , group = "Global Settings")
+globe_size3                  = input.bool(false, 'Large Open Light Source' , group = "Global Settings")
+globe_size4                  = input.bool(false, 'Huge Open Light Source' , group = "Global Settings")
+Saber_cone                   = input.int (14,  'Saber Cone width',  minval=1, maxval=130, group = "Global Settings")
+
+inp_line_style_TR            = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Line Style", group = "Global Settings")
+Line_st_TR                   = inp_line_style_TR  == "Solid" ? line.style_solid : inp_line_style_TR  == "Dotted" ? line.style_dotted : inp_line_style_TR  == "Dashed" ? line.style_dashed : na
+Line_st_TR1                  =  line.style_solid 
+
+var string SH1a      = 'Humdrum Color Select below'
+var string SH1       = 'Ferrari Safari Color'
+var string SH2       = 'Inflamed Gums Color'
+var string SH3       = 'Eastern Green Mamba Color'
+var string SH4       = 'African Zebra Color'
+var string SH5       = 'Bubble Gum and Cocaine Color'
+var string SH6       = 'Cherry Blossom Awesome Color'
+var string SH7       = 'Rainbow Pony Color'
+
+var string i_scheme  = input.string(SH5, 'Color Theme', options=[SH1a,SH1, SH2, SH3, SH4, SH5, SH6, SH7],   group = "Color Settings")
+var bool i_invert    = input(false, 'Invert Colors',   group = "Color Settings")
+Trans_par            = input.int(70, title="Saber Cone Transparency", minval=1,   group = "Color Settings")
+
+saber_fog            = input.int(70, title="Saber Fog", minval=1,   group = "Color Settings")
+saber_var            = input.int(2000, title="Saber Variance", minval=1,   group = "Color Settings")
+
+plain                = input.color(#e6ecec, 'Humdrum Color Must be Select Above',   group = "Color Settings")
+
+zone_c                       = input.color(color.new(#f6f7f8, 10),  'Connecting Line Color', group = "Color Settings")
+i_open_c                     = input.color(color.new(#f30d19, 12),  'Marker Color', group = "Color Settings")
+
+zone_w                       = 1
+line_c                       = color.green
+
+show_Line_1                  = input.bool(true, 'Show Line 01', group = "Lines")
+show_Line_2                  = input.bool(false, 'Show Line 02', group = "Lines")
+show_Line_3                  = input.bool(false, 'Show Line 03', group = "Lines")
+show_Line_4                  = input.bool(false, 'Show Line 04', group = "Lines")
+show_Line_5                  = input.bool(false, 'Show Line 05', group = "Lines")
+show_Line_6                  = input.bool(false, 'Show Line 06', group = "Lines")
+show_Line_7                  = input.bool(false, 'Show Line 07', group = "Lines")
+show_Line_8                  = input.bool(false, 'Show Line 08', group = "Lines")
+show_Line_9                  = input.bool(false, 'Show Line 09', group = "Lines")
+show_Line_10                 = input.bool(false, 'Show Line 10', group = "Lines")
+show_Line_11                 = input.bool(false, 'Show Line 11', group = "Lines")
+show_Line_12                 = input.bool(false, 'Show Line 12', group = "Lines")
+
+trans_p                      = color.new(#f30d19, 100)
+
+var color[] c_gradients = array.new_color(na)
+
+if barstate.isfirst
+    if i_scheme == SH1a
+        array.push(c_gradients, plain)
+
+    else if i_scheme == SH1
+        array.push(c_gradients,color.new( #ff0000,Trans_par))
+        array.push(c_gradients,color.new( #ff2c00,Trans_par))
+        array.push(c_gradients,color.new( #fe4200,Trans_par))
+        array.push(c_gradients,color.new( #fc5300,Trans_par))
+        array.push(c_gradients,color.new( #f96200,Trans_par))
+        array.push(c_gradients,color.new( #f57000,Trans_par))
+        array.push(c_gradients,color.new( #f07e00,Trans_par))
+        array.push(c_gradients,color.new( #ea8a00,Trans_par))
+        array.push(c_gradients,color.new( #e39600,Trans_par))
+        array.push(c_gradients,color.new( #dca100,Trans_par))
+        array.push(c_gradients,color.new( #d3ac00,Trans_par))
+        array.push(c_gradients,color.new( #c9b600,Trans_par))
+        array.push(c_gradients,color.new( #bfc000,Trans_par))
+        array.push(c_gradients,color.new( #b3ca00,Trans_par))
+        array.push(c_gradients,color.new( #a6d400,Trans_par))
+        array.push(c_gradients,color.new( #97dd00,Trans_par))
+        array.push(c_gradients,color.new( #86e600,Trans_par))
+        array.push(c_gradients,color.new( #71ee00,Trans_par))
+        array.push(c_gradients,color.new( #54f700,Trans_par))
+        array.push(c_gradients,color.new( #1eff00,Trans_par))
+    else if i_scheme == SH2
+        array.push(c_gradients,color.new( #ff00d4,Trans_par))
+        array.push(c_gradients,color.new( #f71fda,Trans_par))
+        array.push(c_gradients,color.new( #ef2ee0,Trans_par))
+        array.push(c_gradients,color.new( #e63ae5,Trans_par))
+        array.push(c_gradients,color.new( #de43ea,Trans_par))
+        array.push(c_gradients,color.new( #d44bee,Trans_par))
+        array.push(c_gradients,color.new( #cb52f2,Trans_par))
+        array.push(c_gradients,color.new( #c158f6,Trans_par))
+        array.push(c_gradients,color.new( #b75df9,Trans_par))
+        array.push(c_gradients,color.new( #ac63fb,Trans_par))
+        array.push(c_gradients,color.new( #a267fe,Trans_par))
+        array.push(c_gradients,color.new( #966bff,Trans_par))
+        array.push(c_gradients,color.new( #8b6fff,Trans_par))
+        array.push(c_gradients,color.new( #7e73ff,Trans_par))
+        array.push(c_gradients,color.new( #7276ff,Trans_par))
+        array.push(c_gradients,color.new( #6479ff,Trans_par))
+        array.push(c_gradients,color.new( #557bff,Trans_par))
+        array.push(c_gradients,color.new( #437eff,Trans_par))
+        array.push(c_gradients,color.new( #2e80ff,Trans_par))
+        array.push(c_gradients,color.new( #0082ff,Trans_par))
+    else if i_scheme == SH3
+        array.push(c_gradients,color.new( #fafa6e,Trans_par))
+        array.push(c_gradients,color.new( #e0f470,Trans_par))
+        array.push(c_gradients,color.new( #c7ed73,Trans_par))
+        array.push(c_gradients,color.new( #aee678,Trans_par))
+        array.push(c_gradients,color.new( #97dd7d,Trans_par))
+        array.push(c_gradients,color.new( #81d581,Trans_par))
+        array.push(c_gradients,color.new( #6bcc86,Trans_par))
+        array.push(c_gradients,color.new( #56c28a,Trans_par))
+        array.push(c_gradients,color.new( #42b98d,Trans_par))
+        array.push(c_gradients,color.new( #2eaf8f,Trans_par))
+        array.push(c_gradients,color.new( #18a48f,Trans_par))
+        array.push(c_gradients,color.new( #009a8f,Trans_par))
+        array.push(c_gradients,color.new( #00908d,Trans_par))
+        array.push(c_gradients,color.new( #008589,Trans_par))
+        array.push(c_gradients,color.new( #007b84,Trans_par))
+        array.push(c_gradients,color.new( #0c707d,Trans_par))
+        array.push(c_gradients,color.new( #196676,Trans_par))
+        array.push(c_gradients,color.new( #215c6d,Trans_par))
+        array.push(c_gradients,color.new( #275263,Trans_par))
+        array.push(c_gradients,color.new( #2a4858,Trans_par))
+    else if i_scheme == SH4
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #f0f0f0,Trans_par))
+        array.push(c_gradients,color.new( #e1e1e1,Trans_par))
+        array.push(c_gradients,color.new( #d2d2d2,Trans_par))
+        array.push(c_gradients,color.new( #c3c3c3,Trans_par))
+        array.push(c_gradients,color.new( #b5b5b5,Trans_par))
+        array.push(c_gradients,color.new( #a7a7a7,Trans_par))
+        array.push(c_gradients,color.new( #999999,Trans_par))
+        array.push(c_gradients,color.new( #8b8b8b,Trans_par))
+        array.push(c_gradients,color.new( #7e7e7e,Trans_par))
+        array.push(c_gradients,color.new( #707070,Trans_par))
+        array.push(c_gradients,color.new( #636363,Trans_par))
+        array.push(c_gradients,color.new( #575757,Trans_par))
+        array.push(c_gradients,color.new( #4a4a4a,Trans_par))
+        array.push(c_gradients,color.new( #3e3e3e,Trans_par))
+        array.push(c_gradients,color.new( #333333,Trans_par))
+        array.push(c_gradients,color.new( #272727,Trans_par))
+        array.push(c_gradients,color.new( #1d1d1d,Trans_par))
+        array.push(c_gradients,color.new( #121212,Trans_par))
+        array.push(c_gradients,color.new( #000000,Trans_par))
+    else if i_scheme == SH5
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #f4f5fa,Trans_par))
+        array.push(c_gradients,color.new( #e9ebf5,Trans_par))
+        array.push(c_gradients,color.new( #dee1f0,Trans_par))
+        array.push(c_gradients,color.new( #d3d7eb,Trans_par))
+        array.push(c_gradients,color.new( #c8cde6,Trans_par))
+        array.push(c_gradients,color.new( #bdc3e1,Trans_par))
+        array.push(c_gradients,color.new( #b2b9dd,Trans_par))
+        array.push(c_gradients,color.new( #a7b0d8,Trans_par))
+        array.push(c_gradients,color.new( #9ca6d3,Trans_par))
+        array.push(c_gradients,color.new( #919dce,Trans_par))
+        array.push(c_gradients,color.new( #8594c9,Trans_par))
+        array.push(c_gradients,color.new( #7a8bc4,Trans_par))
+        array.push(c_gradients,color.new( #6e82bf,Trans_par))
+        array.push(c_gradients,color.new( #6279ba,Trans_par))
+        array.push(c_gradients,color.new( #5570b5,Trans_par))
+        array.push(c_gradients,color.new( #4768b0,Trans_par))
+        array.push(c_gradients,color.new( #385fab,Trans_par))
+        array.push(c_gradients,color.new( #2557a6,Trans_par))
+        array.push(c_gradients,color.new( #004fa1,Trans_par))
+    else if i_scheme == SH6
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #fff4f1,Trans_par))
+        array.push(c_gradients,color.new( #ffe9e3,Trans_par))
+        array.push(c_gradients,color.new( #ffded6,Trans_par))
+        array.push(c_gradients,color.new( #ffd3c8,Trans_par))
+        array.push(c_gradients,color.new( #fec8bb,Trans_par))
+        array.push(c_gradients,color.new( #fdbdae,Trans_par))
+        array.push(c_gradients,color.new( #fbb2a1,Trans_par))
+        array.push(c_gradients,color.new( #f8a794,Trans_par))
+        array.push(c_gradients,color.new( #f69c87,Trans_par))
+        array.push(c_gradients,color.new( #f3917b,Trans_par))
+        array.push(c_gradients,color.new( #f0856f,Trans_par))
+        array.push(c_gradients,color.new( #ec7a62,Trans_par))
+        array.push(c_gradients,color.new( #e86e56,Trans_par))
+        array.push(c_gradients,color.new( #e4634a,Trans_par))
+        array.push(c_gradients,color.new( #df563f,Trans_par))
+        array.push(c_gradients,color.new( #db4933,Trans_par))
+        array.push(c_gradients,color.new( #d63a27,Trans_par))
+        array.push(c_gradients,color.new( #d0291b,Trans_par))
+        array.push(c_gradients,color.new( #cb0e0e,Trans_par))
+    else if i_scheme == SH7
+        array.push(c_gradients,color.new( #E50000,Trans_par))
+        array.push(c_gradients,color.new( #E6023B,Trans_par))
+        array.push(c_gradients,color.new( #E70579,Trans_par))
+        array.push(c_gradients,color.new( #E908B7,Trans_par))
+        array.push(c_gradients,color.new( #E00BEA,Trans_par))
+        array.push(c_gradients,color.new( #A70DEB,Trans_par))
+        array.push(c_gradients,color.new( #6E10ED,Trans_par))
+        array.push(c_gradients,color.new( #3613EE,Trans_par))
+        array.push(c_gradients,color.new( #162DEF,Trans_par))
+        array.push(c_gradients,color.new( #1969F1,Trans_par))
+        array.push(c_gradients,color.new( #1CA4F2,Trans_par))
+        array.push(c_gradients,color.new( #1FDFF4,Trans_par))
+        array.push(c_gradients,color.new( #22F5D2,Trans_par))
+        array.push(c_gradients,color.new( #25F69C,Trans_par))
+        array.push(c_gradients,color.new( #28F867,Trans_par))
+        array.push(c_gradients,color.new( #2CF933,Trans_par))
+        array.push(c_gradients,color.new( #5DFA2F,Trans_par))
+        array.push(c_gradients,color.new( #96FC32,Trans_par))
+        array.push(c_gradients,color.new( #CDFD35,Trans_par))
+        array.push(c_gradients, color.new(#FFF938,Trans_par))
+
+    if i_invert
+        array.reverse(c_gradients)
+
+f_rescale(_src, _min, _max) =>
+    var int _size = array.size(c_gradients) - 1
+    int _colorStep = int(_size * (_src - _min)) / int(math.max(_max - _min, 10e-10))
+    _colorStep := _colorStep > _size ? _size : _colorStep < 0 ? 0 : _colorStep
+    int(_colorStep)
+
+f_colGrad(_src, _min, _max) =>
+    array.get(c_gradients, f_rescale(_src, _min, _max))
+
+rsi = ta.rsi(close, saber_fog)
+[_, rsiUpperBand, rsiLowerBand] = ta.bb(rsi, saber_var, 2.618)
+color c_rsi = f_colGrad(rsi, rsiLowerBand, rsiUpperBand)
+
+[high_,yc1,open_,open1_,open2_,open3_,open4_,open5_,open6_,open7_,open8_,open9_,open10_,open11_,open12_,opent_,opent1_,opent2_,opent3_,opent4_,opent5_,opent6_,opent7_,opent8_,opent9_,opent10_,opent11_,opent12_] = request.security(syminfo.tickerid, tf_sel, expression=
+ [high[1],close[1],open,open[1],open[2],open[3],open[4],open[5],open[6],open[7],open[8],open[9],open[10],open[11],open[12],time,time[1],time[2],time[3],time[4],time[5],time[6],time[7],time[8],time[9],time[10],time[11],time[12]], lookahead=barmerge.lookahead_on)
+
+new_day1      = yc1[1]  != yc1
+plotchar(new_day1 and show_yearly and globe_size ? open_ : na, title='Close', char='•' , location=location.absolute, color=c_rsi, offset=0, size=size.tiny)
+plotchar(new_day1 and show_yearly and globe_size1 ? open_ : na, title='Close', char='•' , location=location.absolute, color=c_rsi, offset=0, size=size.small)
+plotchar(new_day1 and show_yearly and globe_size2 ? open_ : na, title='Close', char='•' , location=location.absolute, color=c_rsi, offset=0, size=size.normal)
+plotchar(new_day1 and show_yearly and globe_size3 ? open_ : na, title='Close', char='•' , location=location.absolute, color=c_rsi, offset=0, size=size.large)
+plotchar(new_day1 and show_yearly and globe_size4 ? open_ : na, title='Close', char='•' , location=location.absolute, color=c_rsi, offset=0, size=size.huge)
+
+
+
+if barstate.islast
+    secondsPerBar=time[0]-time[1]    
+
+    line1     = show_Line_1 and show_Lines  ? line.new(opent1_,open1_,opent_,open_,       xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line1a    = show_Line_1 and show_zones  ?  line.new(opent1_,open1_,opent_,open_+Saber_cone,      xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line1b    = show_Line_1 and show_zones  ?  line.new(opent1_,open1_,opent_,open_-Saber_cone,      xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line1a, line1b, c_rsi)
+    line2     = show_Line_2 and show_Lines  ? line.new(opent2_,open2_,opent1_,open1_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line2a    = show_Line_2 and show_zones  ? line.new(opent2_,open2_,opent1_,open1_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line2b    = show_Line_2 and show_zones  ? line.new(opent2_,open2_,opent1_,open1_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line2a, line2b, c_rsi)
+    line3     = show_Line_3 and show_Lines  ? line.new(opent3_,open3_,opent2_,open2_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line3a    = show_Line_3 and show_zones  ? line.new(opent3_,open3_,opent2_,open2_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line3b    = show_Line_3 and show_zones  ? line.new(opent3_,open3_,opent2_,open2_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line3a, line3b, c_rsi)
+    line4     = show_Line_4 and show_Lines  ? line.new(opent4_,open4_,opent3_,open3_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line4a    = show_Line_4 and show_zones  ? line.new(opent4_,open4_,opent3_,open3_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line4b    = show_Line_4 and show_zones  ? line.new(opent4_,open4_,opent3_,open3_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line4a, line4b, c_rsi)
+    line5     = show_Line_5 and show_Lines  ? line.new(opent5_,open5_,opent4_,open4_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line5a    = show_Line_5 and show_zones  ? line.new(opent5_,open5_,opent4_,open4_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line5b    = show_Line_5 and show_zones  ? line.new(opent5_,open5_,opent4_,open4_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line5a, line5b, c_rsi)
+    line6     = show_Line_6 and show_Lines  ? line.new(opent6_,open6_,opent5_,open5_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line6a    = show_Line_6 and show_zones  ? line.new(opent6_,open6_,opent5_,open5_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line6b    = show_Line_6 and show_zones  ? line.new(opent6_,open6_,opent5_,open5_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line6a, line6b, c_rsi)
+    line7     = show_Line_7 and show_Lines  ? line.new(opent7_,open7_,opent6_,open6_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line7a    = show_Line_7 and show_zones  ? line.new(opent7_,open7_,opent6_,open6_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line7b    = show_Line_7 and show_zones  ? line.new(opent7_,open7_,opent6_,open6_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line7a, line7b, c_rsi)
+    line8     = show_Line_8 and show_Lines  ? line.new(opent8_,open8_,opent7_,open7_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line8a    = show_Line_8 and show_zones  ? line.new(opent8_,open8_,opent7_,open7_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line8b    = show_Line_8 and show_zones  ? line.new(opent8_,open8_,opent7_,open7_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line8a, line8b, c_rsi)
+    line9     = show_Line_9 and show_Lines  ? line.new(opent9_,open9_,opent8_,open8_,     xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line9a    = show_Line_9 and show_zones  ? line.new(opent9_,open9_,opent8_,open8_+Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line9b    = show_Line_9 and show_zones  ? line.new(opent9_,open9_,opent8_,open8_-Saber_cone,     xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line9a, line9b, c_rsi)
+    line10    = show_Line_10 and show_Lines ? line.new(opent10_,open10_,opent9_,open9_,   xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line10a   = show_Line_10 and show_zones ? line.new(opent10_,open10_,opent9_,open9_+Saber_cone,   xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line10b   = show_Line_10 and show_zones ? line.new(opent10_,open10_,opent9_,open9_-Saber_cone,   xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line10a, line10b, c_rsi)
+    line11    = show_Line_11 and show_Lines ? line.new(opent11_,open11_,opent10_,open10_, xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line11a   = show_Line_11 and show_zones ? line.new(opent11_,open11_,opent10_,open10_+Saber_cone, xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line11b   = show_Line_11 and show_zones ? line.new(opent11_,open11_,opent10_,open10_-Saber_cone, xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line11a, line11b, c_rsi)
+    line12    = show_Line_12 and show_Lines ? line.new(opent12_,open12_,opent11_,open11_, xloc = xloc.bar_time,color=c_rsi,style=Line_st_TR,width = 1):na
+    line12a   = show_Line_12 and show_zones ? line.new(opent12_,open12_,opent11_,open11_+Saber_cone, xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    line12b   = show_Line_12 and show_zones ? line.new(opent12_,open12_,opent11_,open11_-Saber_cone, xloc = xloc.bar_time,color=trans_p,style=Line_st_TR1,width = zone_w,extend = extend.right ):na
+    linefill.new(line12a, line12b, c_rsi)

@@ -1,0 +1,94 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Jo-Pippin
+
+//@version=5
+indicator("Drop and dragg Poc", overlay = true, max_bars_back = 500)
+
+Alert_zone_spacing   = input.int (20,   'Poc Zones width',  minval=1, maxval=130, group = "Element On/Off")
+zone_spacing_right   = input.int (20,   'Poc Zones extend right',  minval=1, maxval=130, group = "Element On/Off")
+show_second_inp      = input.bool(true, 'Show 2nd candle selector',confirm=true, group = "Element On/Off")
+show_third_inp       = input.bool(true, 'Show 3rd candle selector',confirm=true, group = "Element On/Off")
+show_labels          = input.bool(true, 'Show Poc price labels', group = "Element On/Off")
+show_vol_mark        = input.bool(true, 'Show vol Markers', group = "Element On/Off")
+show_volume_gra      = input.bool(true, 'Show gradient volume candles',confirm=true, group = "Element On/Off")
+
+alert_line_col       = input.color(color.new(#eceff1, 100) ,'Poc zone outline color', group = "Color")
+alert_zone_bg        = input.color(color.new(#070707, 70) ,'Poc zone BG color', group = "Color")
+
+length               = input.int(400, "Volume Lookback Period", 2,  group = "Volume candle gradient")
+bodyColorToggle      = input.bool(true, "Vol Canles Body Color On",  group = "Volume candle gradient")
+borderColorToggle    = input.bool(true, "Vol Canles Border Color On",  group = "Volume candle gradient")
+wickColorToggle      = input.bool(true, "Vol Canles Wick Color On",  group = "Volume candle gradient")
+
+inp_line_style_TR    = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Poc Zone outline style", group = "Element On/Off")
+Line_st_TR           = inp_line_style_TR  == "Solid" ? line.style_solid : inp_line_style_TR  == "Dotted" ? line.style_dotted : inp_line_style_TR  == "Dashed" ? line.style_dashed : na
+
+inp_text_size        = input.string("Auto", options = ["Tiny", "Small", "Auto"], title = "Label Text Size", group = "Element On/Off")
+TextSize             = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : inp_text_size == "Auto" ? size.auto : na
+
+date1                = input.time(0,title ='Input Candle Date',confirm=true,group='Elements')
+date2                = input.time(0,title ='Input Candle Date2',confirm=true,group='Elements')
+date3                = input.time(0,title ='Input Candle Date2',confirm=true,group='Elements')
+Text_c               = input.color(color.new(#f5f6fa, 0) ,'Text Color', group = "Color")
+m_c                  = input.color(color.new(#404867, 0) ,'Selected candle Marker Color', group = "Color")
+customUpColorT       = input.color(color.new(#3f4850, 0), "Up Color of gradient vol candles",  group = "Color")
+customDownColorT     = input.color(color.new(#f82104, 0), "Down Color of gradient vol candles", group = "Color")
+
+//Volume for last N periods
+var int [] pastVol = array.new_int(length)
+for i = 0 to length - 1
+    array.set(pastVol, i, int(volume[i]))
+
+//Heatmap color assignments
+upColor   = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customUpColorT)
+downColor = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customDownColorT)
+
+//Dynamic timeframe
+currentTimeframe = timeframe.in_seconds(timeframe.period) / 60
+dynTf = currentTimeframe <= 30 ? "1" : currentTimeframe > 30 and currentTimeframe <= 180 ? "5" :
+ currentTimeframe > 180   and currentTimeframe <= 480 ? "15" : currentTimeframe > 480 and currentTimeframe <= 1440 ? "60" :
+  currentTimeframe > 1440 and currentTimeframe <= 4320 ? "120" : currentTimeframe > 4320 ? "240" : na
+
+ltfStats() =>
+    vol = na(volume) == false ? volume : 0
+    [close, vol]
+
+[ltfSrc, ltfVolume] = request.security_lower_tf(syminfo.tickerid, dynTf, ltfStats())
+tpoArrSize          = array.size(ltfSrc)
+maxVolume           = array.max(ltfVolume,0)
+indexOfMaxVolume    = array.indexof(ltfVolume, maxVolume)
+maxVol              = array.size(ltfSrc) > 0 ? array.get(ltfSrc, indexOfMaxVolume) : na
+bartime             = int(ta.change(time))
+bars                = (math.floor((timenow - date1) / bartime))-1
+bars2               = (math.floor((timenow - date2) / bartime))-1
+bars3               = (math.floor((timenow - date3) / bartime))-1
+poc_price_text      = show_labels == true ? "- $" + str.tostring(maxVol[bars+1]) : ''
+poc_price_text2     = show_labels == true ? "- $" + str.tostring(maxVol[bars2+1]) : ''
+poc_price_text3     = show_labels == true ? "- $" + str.tostring(maxVol[bars3+1]) : ''
+
+//Poc 
+poc_z_box  = box.new(bar_index[bars+1], maxVol[bars+1]+Alert_zone_spacing, bar_index+zone_spacing_right, maxVol[bars+1]-Alert_zone_spacing, border_color=alert_line_col, border_width=1, border_style=Line_st_TR,bgcolor=alert_zone_bg, text=poc_price_text, text_size=TextSize, text_color=Text_c, text_halign=text.align_right, text_valign=text.align_center)
+box.delete(poc_z_box[1]) 
+
+//Poc 2
+poc_z_box2  = show_second_inp ? box.new(bar_index[bars2+1], maxVol[bars2+1]+Alert_zone_spacing, bar_index+zone_spacing_right, maxVol[bars2+1]-Alert_zone_spacing, border_color=alert_line_col, border_width=1, border_style=Line_st_TR,bgcolor=alert_zone_bg, text=poc_price_text2, text_size=TextSize, text_color=Text_c, text_halign=text.align_right, text_valign=text.align_center):na
+box.delete(poc_z_box2[1]) 
+
+//Poc 3
+poc_z_box3  = show_third_inp ? box.new(bar_index[bars3+1], maxVol[bars3+1]+Alert_zone_spacing, bar_index+zone_spacing_right, maxVol[bars3+1]-Alert_zone_spacing, border_color=alert_line_col, border_width=1, border_style=Line_st_TR,bgcolor=alert_zone_bg, text=poc_price_text3, text_size=TextSize, text_color=Text_c, text_halign=text.align_right, text_valign=text.align_center):na
+box.delete(poc_z_box3[1]) 
+
+//Vol Candle Marker 01
+vol_candle_marker = show_vol_mark  ? label.new(bar_index[bars+1], low[bars+1], text='▲', color=color.new(color.black,100), style=label.style_label_up, textcolor=m_c, size=size.tiny):na
+label.delete(vol_candle_marker[1])
+
+//Vol Candle Marker 02
+vol_candle_marker2 = show_vol_mark and show_second_inp  ? label.new(bar_index[bars2+1], low[bars2+1], text='▲', color=color.new(color.black,100), style=label.style_label_up, textcolor=m_c, size=size.tiny):na
+label.delete(vol_candle_marker2[1])
+
+//Vol Candle Marker 03
+vol_candle_marker3 = show_vol_mark and show_third_inp  ? label.new(bar_index[bars3+1], low[bars3+1], text='▲', color=color.new(color.black,100), style=label.style_label_up, textcolor=m_c, size=size.tiny):na
+label.delete(vol_candle_marker3[1])
+
+//Plot high vol candles
+plotcandle(show_volume_gra ? open:na, high, low, close, "Volume Heatmap Candlestick Colors", bodyColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), wickColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), bordercolor=borderColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100))

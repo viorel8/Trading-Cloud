@@ -1,0 +1,114 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Thi script allows to identificate target points (E,N,V,NT) following  Hosoda theory for N wave
+// © Francesco_Marzolo
+
+//@version=5
+indicator("Hosoda N Wave and TPs {fmz}",shorttitle="Hosoda N-wave TP", overlay=true)
+
+HorizLinesOnTarget     = input.bool(false,"Show horizontal lines", group = "Hosoda")
+tr                     = input.bool(false,"Draw trendline", group = "Hosoda")
+HorizLinesOnTargetTrim = input.bool(true,"Trim horizontal lines on right", group = "Hosoda")
+VertLinesOnTarget      = input.bool(false,"Show vertical lines", group = "Hosoda")
+ShowBoxAroundTarget    = input.bool(true,"Show a box around time & price targets", group = "Hosoda")
+ShowTargetPriceLabel   = input.bool(true,"Show Label on target", group = "Hosoda")
+ShowTargetPriceLabelr  = input.bool(true,"Show Label on right", group = "Hosoda")
+ShowTargetPrice        = input.bool(true,"Show Price Label on target price", group = "Hosoda")
+inp_line_style         = input.string("Solid", options = ["Dotted", "Solid", "Dashed"], title = "Line Style", group = "Hosoda")
+Line_st                = inp_line_style == "Solid" ? line.style_solid : inp_line_style == "Dotted" ? line.style_dotted : inp_line_style == "Dashed" ? line.style_dashed : na
+
+AllColor               = input.color(color.new(#030303, 1), "Line Color", group = "Color")
+text_c                 = input.color(color.rgb(12, 12, 12), "Text Color", group = "Color")
+label_b_color          = input.color(color.new(color.white,100), "Label Background Color", group = "Color")
+
+priceA                 = input.price(100, inline="PointA", confirm=true)
+timeA                  = input.time(timestamp("2022-02-20"), inline="PointA", confirm=true)
+
+priceB                 = input.price(100, inline="PointB", confirm=true)
+timeB                  = input.time(timestamp("2022-02-20"), inline="PointB", confirm=true)
+
+priceC                 = input.price(100, inline="PointC", confirm=true)
+timeC                  = input.time(timestamp("2022-02-20"), inline="PointC", confirm=true)
+
+longShort= (priceB> priceA)? 1:-1
+
+ABdiff=timeB-timeA
+BCdiff=timeC-timeB
+ACdiff=timeC-timeA
+AAtr=ta.atr(14)/2
+
+if barstate.islast
+
+    secondsPerBar=time[0]-time[1]    
+
+    vv = tr ? line.new(timeA,priceA,timeB,priceB, xloc = xloc.bar_time,color=AllColor,style=line.style_dashed):na
+    vv2 = tr ?line.new(timeB,priceB,timeC,priceC, xloc = xloc.bar_time,color=AllColor,style=line.style_dashed):na
+    label.new(timeA, priceA, "A", xloc=xloc.bar_time,yloc=(longShort>0)?yloc.belowbar:yloc.abovebar,size=size.tiny, style=label.style_none,textcolor=text_c,color=label_b_color)
+    label.new(timeB, priceB, "B", xloc=xloc.bar_time,yloc=(longShort<0)?yloc.belowbar:yloc.abovebar,size=size.tiny, style=label.style_none,textcolor=text_c,color=label_b_color)
+    label.new(timeC, priceC, "C", xloc=xloc.bar_time,yloc=(longShort>0)?yloc.belowbar:yloc.abovebar,size=size.tiny, style=label.style_none,textcolor=text_c,color=label_b_color)
+
+    HosodaTpEprice=priceB + (longShort * math.abs(priceB-priceA))
+    HosodaTpEtime=timeB+ABdiff
+    HosodaTpNprice=priceC + (longShort * math.abs(priceB-priceA))
+    HosodaTpNtime=timeC+ABdiff
+    HosodaTpVprice=priceB + (longShort * math.abs(priceB-priceC))
+    HosodaTpVtime=timeC+BCdiff
+    HosodaTpNTprice=priceC + (longShort * math.abs(priceC-priceA))
+    HosodaTpNTtime=timeC+ACdiff
+    extendHorLines=extend.right
+    StartxForHorLines=math.min(timeC,HosodaTpEtime,HosodaTpNtime,HosodaTpVtime,HosodaTpNTtime)
+    EndxForHorLines=timeC+1
+    if HorizLinesOnTargetTrim
+        EndxForHorLines:=math.max(HosodaTpEtime,HosodaTpNtime,HosodaTpVtime,HosodaTpNTtime)
+        extendHorLines:=extend.none
+
+    Etext = ShowTargetPrice ? "E  |  "+ str.tostring(HosodaTpEprice,format.mintick) : "E"
+    //E:
+    if ShowBoxAroundTarget
+        box.new(HosodaTpEtime-secondsPerBar*2,HosodaTpEprice+AAtr,HosodaTpEtime+secondsPerBar*2,HosodaTpEprice-AAtr,AllColor,1,line.style_solid,extend.none,xloc=xloc.bar_time,bgcolor=na)
+    if VertLinesOnTarget
+        line.new(HosodaTpEtime,priceC,HosodaTpEtime,HosodaTpEprice, xloc = xloc.bar_time,color=AllColor)    
+    if ShowTargetPriceLabel
+        label.new(HosodaTpEtime, HosodaTpEprice+AAtr, Etext   ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_lower_left,color=color.new(color.black,100),size=size.tiny)
+    if HorizLinesOnTarget
+        line.new(HosodaTpEtime+secondsPerBar*2,HosodaTpEprice,time,HosodaTpEprice, xloc = xloc.bar_time,extend=extendHorLines,color=AllColor,style=Line_st)
+    if ShowTargetPriceLabelr
+        label.new(time, HosodaTpEprice, Etext ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_left,color=color.new(color.black,100),size=size.tiny)  
+
+    Ntext = ShowTargetPrice ? "N  |  "+ str.tostring(HosodaTpNprice,format.mintick) : "N"
+    //N:
+    if ShowBoxAroundTarget
+        box.new(HosodaTpNtime-secondsPerBar*2,HosodaTpNprice+AAtr,HosodaTpNtime+secondsPerBar*2,HosodaTpNprice-AAtr,AllColor,1,line.style_solid,extend.none,xloc=xloc.bar_time,bgcolor=na)
+    if ShowTargetPriceLabel
+        label.new(HosodaTpNtime, HosodaTpNprice+AAtr, Ntext,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_lower_left,color=color.new(color.black,100),size=size.tiny)
+    if VertLinesOnTarget
+        line.new(HosodaTpNtime,priceC,HosodaTpNtime,HosodaTpEprice, xloc = xloc.bar_time,color=AllColor)
+    if HorizLinesOnTarget
+        line.new(HosodaTpNtime+secondsPerBar*2,HosodaTpNprice,time,HosodaTpNprice, xloc = xloc.bar_time,extend=extendHorLines,color=AllColor,style=Line_st)
+    if ShowTargetPriceLabelr
+        label.new(time, HosodaTpNprice, Ntext ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_left,color=color.new(color.black,100),size=size.tiny)        
+
+    Vtext = ShowTargetPrice ? "V  |  "+ str.tostring(HosodaTpVprice,format.mintick) : "V"
+    //V:
+    if ShowBoxAroundTarget
+        box.new(HosodaTpVtime-secondsPerBar*2,HosodaTpVprice+AAtr,HosodaTpVtime+secondsPerBar*2,HosodaTpVprice-AAtr,AllColor,1,line.style_solid,extend.none,xloc=xloc.bar_time,bgcolor=na)
+    if ShowTargetPriceLabel
+        label.new(HosodaTpVtime, HosodaTpVprice+AAtr, Vtext  ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_lower_left,color=color.new(color.black,100),size=size.tiny)
+    if VertLinesOnTarget
+        line.new(HosodaTpVtime,priceC,HosodaTpVtime,HosodaTpEprice, xloc = xloc.bar_time,color=AllColor)
+    if HorizLinesOnTarget
+        line.new(HosodaTpVtime+secondsPerBar*2,HosodaTpVprice,time,HosodaTpVprice, xloc = xloc.bar_time,extend=extendHorLines,color=AllColor,style=Line_st)
+    if ShowTargetPriceLabelr
+        label.new(time, HosodaTpVprice, Vtext ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_left,color=color.new(color.black,100),size=size.tiny)    
+
+    NTtext = ShowTargetPrice ? "NT  |  "+ str.tostring(HosodaTpNTprice,format.mintick) : "NT"
+    //NT:
+    if ShowBoxAroundTarget
+        box.new(HosodaTpNTtime-secondsPerBar*2,HosodaTpNTprice+AAtr,HosodaTpNTtime+secondsPerBar*2,HosodaTpNTprice-AAtr,AllColor,1,line.style_solid,extend.none,xloc=xloc.bar_time,bgcolor=na)
+    if ShowTargetPriceLabel
+        label.new(HosodaTpNTtime, HosodaTpNTprice+AAtr, NTtext ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_lower_left,color=color.new(color.black,100),size=size.tiny)
+    if VertLinesOnTarget
+        line.new(HosodaTpNTtime,priceC,HosodaTpNTtime,HosodaTpEprice, xloc = xloc.bar_time,color=AllColor)
+    if HorizLinesOnTarget
+        line.new(HosodaTpNTtime+secondsPerBar*2,HosodaTpNTprice,time,HosodaTpNTprice, xloc = xloc.bar_time,extend=extendHorLines,color=AllColor,style=Line_st)
+    if ShowTargetPriceLabelr
+        label.new(time, HosodaTpNTprice, NTtext ,textcolor=text_c, xloc=xloc.bar_time,yloc=yloc.price, style=label.style_label_left,color=color.new(color.black,100),size=size.tiny)

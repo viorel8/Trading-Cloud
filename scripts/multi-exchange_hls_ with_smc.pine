@@ -1,0 +1,520 @@
+//Jo | I copied the smc script below my own multi exchange code from LuxAlgo, all credits to him. 
+//@version=5
+indicator("EXCHANGE LHs", "EXCHANGE LHs"
+  , overlay = true
+  , max_labels_count = 500
+  , max_lines_count = 500
+  , max_boxes_count = 500
+  , max_bars_back = 500)
+
+import FFriZz/BoxLine_Lib/1 as obj
+
+candleupcol= input.color(color.new(#676d84,70),title="Candle up color",group="Candle Color")
+candledowncol= input.color(color.new(#343946,100),title="Candle down color",group="Candle Color")
+wickcol = input.color(color.new(#676d84,70),title="Candle wick color",group="Candle Color")
+candleupcolb= input.color(color.new(#676d84,45),title="Candle up border color",group="Candle Color")
+candledowncolb= input.color(color.new(#676d84,50),title="Candle down border color",group="Candle Color")  
+
+Show_3_exc          = input.bool(true, 'Signal only when 4 exchanges spiked in vol at the same time', group = "Element On/Off")
+tf                  = input.timeframe("", "", group = "Element On/Off")
+fvg_i =  input.bool(true,'FVG | On/Off?', group = "Element On/Off")
+cross_i =  input.bool(true,'Delete FVG when Completely filled', group = "Element On/Off")
+crossAdj_i = input.bool(true,"Adjust FVG when Filled/Mitigated", group = "Element On/Off")
+fvg_w = input.int(2,'FVG Width', group = "Element On/Off")
+count_i = input.int(100,'Display Count', group = "Element On/Off")
+bullFvg_c = input.color(#3094bb,'Bull', group = "Element On/Off")
+bearFvg_c = input.color(#3094bb,'Bear', group = "Element On/Off")
+inp_text_size       = input.string("Tiny", options = ["Tiny", "Small"], title = "Table Text Size", group = "Element On/Off")
+TextSize            = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : na
+
+
+formuleEx1 = input.symbol(title="TICKER 1:",  defval="BINANCE:BTCUSDT")
+formuleEx2 = input.symbol(title="TICKER 2:",  defval="BYBIT:BTCUSDT.P")
+formuleEx4 = input.symbol(title="TICKER 4:",  defval="BINANCE:BTCUSDTPERP")
+
+
+[spot_1_LOW,spot_1_HIGH,spot_1_CLOSE,spot_1_OPEN] = request.security(formuleEx1, tf, [low,high,close,open]) 
+[spot_2_LOW,spot_2_HIGH,spot_2_CLOSE,spot_2_OPEN] = request.security(formuleEx2, tf, [low,high,close,open])  
+[spot_3_LOW,spot_3_HIGH,spot_3_CLOSE,spot_3_OPEN] = request.security(formuleEx4, tf, [low,high,close,open]) 
+
+
+low_s= math.min(spot_1_LOW, spot_2_LOW,spot_3_LOW)
+high_s= math.max(spot_1_HIGH, spot_2_HIGH,spot_3_HIGH)
+close_s= math.avg(spot_1_CLOSE, spot_2_CLOSE,spot_3_CLOSE)
+open_s= math.avg(spot_1_OPEN, spot_2_OPEN,spot_3_OPEN)
+
+plotcandle(open_s, high_s, low_s, close_s, title="High Low Candle",  bordercolor=open < close ? candleupcolb : candledowncolb, color = open < close ? candleupcol : candledowncol, wickcolor=wickcol)
+
+// // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// // © Texmoonbeam
+
+bullfvg = input.color(defval=color.new(color.teal,25), title='Bull FVG')
+bearfvg = input.color(defval=color.new(color.maroon,25), title='Bear FVG')
+lookback = input.int(defval=50, title='Bars to look back')
+mit = input.string(defval="full fill high/low", title = "Mitigation Type", options = ["full fill high/low","full fill open/close","half fill high/low","half fill open/close","no mitigation"], tooltip="Defines when an FVG will be mitigated and not used/displayed. This can be when full or half filled, by a high/low value or open/close value. When using no mitigation the nearest FVG will be shown always.")
+bprs = input.bool(defval=true, title='Show when nearest FVGs create a BPR ▼', tooltip="BPR refers to balanced price range, and an overlapped bull/bear FVG pair")
+
+//Convert a given string resolution into seconds
+ResolutionToSec(res)=>
+    mins = res == "1" ? 1 :
+           res == "3" ? 3 :
+           res == "5" ? 5 :
+           res == "10" ? 10 :
+           res == "15" ? 15 :
+           res == "30" ? 30 :
+           res == "45" ? 45 :
+           res == "60" ? 60 :
+           res == "120" ? 120 :
+           res == "180" ? 180 :
+           res == "240" ? 240 :
+           res == "D" or res == "1D" ? 1440 :
+           res == "W" or res == "1W" ? 10080 :
+           res == "M" or res == "1M" ? 43200 :
+           res == "" ? int(str.tonumber(timeframe.period)) : int(str.tonumber(res))
+    ms = mins * 60 * 1000
+
+bar = ResolutionToSec(timeframe.period) 
+
+//addition = ResolutionToSec(timeframe == "" ? timeframe.period : timeframe)
+
+var n1 = 0
+var m = 0
+var bullmit = false
+var bearmit = false
+var float bullhigh = na
+var float bearlow = na
+var float prevnearbull = high_s
+var float prevnearbear = high_s
+var line bullhighline = na
+var line bearhighline = na
+var line bulllowline = na
+var line bearlowline = na
+var label bearbpr = na
+var label bullbpr = na
+
+var bullfvghight = array.new_int()
+var bullfvglowt= array.new_int()
+var bearfvghight = array.new_int()
+var bearfvglowt = array.new_int()
+
+var bullfvghighttemp = array.new_int()
+var bullfvglowttemp= array.new_int()
+var bearfvghighttemp = array.new_int()
+var bearfvglowttemp = array.new_int()
+//array.copy
+var bullfvghigh = array.new_float()
+var bullfvglow = array.new_float()
+var bearfvghigh = array.new_float()
+var bearfvglow = array.new_float()
+
+var bullfvghightemp = array.new_float()
+var bullfvglowtemp = array.new_float()
+var bearfvghightemp = array.new_float()
+var bearfvglowtemp = array.new_float()
+   
+nearest(prev, curr, target) =>
+    if (math.abs(prev-target) < math.abs(curr-target))
+        prev
+    else    
+        curr
+
+arrayadd(n1, arr1, arr2) =>
+    array.push(arr2, array.get(arr1, n1))
+
+if (high_s[2] < low_s)
+    array.push(bullfvghigh, high_s[2])
+    array.push(bullfvglow, low_s)
+    array.push(bullfvghight, time[2])
+    array.push(bullfvglowt, time)
+    
+if (array.size((bullfvglow)) > 0)
+    
+    for x = array.size((bullfvglow))-1 to 0
+        
+        if (mit == "full fill high/low")
+            if (not(low_s <= array.get(bullfvghigh, x)) and array.get(bullfvghight, x) >= time - lookback*(bar+2))
+                arrayadd(x, bullfvghigh, bullfvghightemp)
+                arrayadd(x, bullfvghight, bullfvghighttemp)
+                arrayadd(x, bullfvglow, bullfvglowtemp)
+                arrayadd(x, bullfvglowt, bullfvglowttemp)
+        if (mit == "half fill high/low")
+            if (not(low_s <= array.get(bullfvglow, x)-(array.get(bullfvglow, x)-array.get(bullfvghigh, x))/2) and array.get(bullfvghight, x) >= time - lookback*(bar+2))
+                arrayadd(x, bullfvghigh, bullfvghightemp)
+                arrayadd(x, bullfvghight, bullfvghighttemp)
+                arrayadd(x, bullfvglow, bullfvglowtemp)
+                arrayadd(x, bullfvglowt, bullfvglowttemp)
+        if (mit == "full fill open/close")
+            if ((close_s<open_s ? close_s : open_s) >= array.get(bullfvghigh, x) and array.get(bullfvghight, x) >= time - lookback*(bar+2))
+                arrayadd(x, bullfvghigh, bullfvghightemp)
+                arrayadd(x, bullfvghight, bullfvghighttemp)
+                arrayadd(x, bullfvglow, bullfvglowtemp)
+                arrayadd(x, bullfvglowt, bullfvglowttemp)
+        if (mit == "half fill open/close")
+            if ((close_s<open_s ? close_s : open_s) >= array.get(bullfvglow, x)-(array.get(bullfvglow, x)-array.get(bullfvghigh, x))/2) and array.get(bullfvghight, x) >= time - lookback*(bar+2)
+                arrayadd(x, bullfvghigh, bullfvghightemp)
+                arrayadd(x, bullfvghight, bullfvghighttemp)
+                arrayadd(x, bullfvglow, bullfvglowtemp)
+                arrayadd(x, bullfvglowt, bullfvglowttemp)
+
+if (mit != "no mitigation")
+    bullfvghigh := array.copy(bullfvghightemp)
+    bullfvghight := array.copy(bullfvghighttemp)
+    bullfvglow := array.copy(bullfvglowtemp)
+    bullfvglowt := array.copy(bullfvglowttemp)
+    array.clear(bullfvghightemp)
+    array.clear(bullfvghighttemp)
+    array.clear(bullfvglowtemp)
+    array.clear(bullfvglowttemp)
+
+
+if (low_s[2] > high_s)
+    array.push(bearfvghigh, high_s)
+    array.push(bearfvglow, low_s[2])
+    array.push(bearfvghight, time)
+    array.push(bearfvglowt, time[2])
+    
+if (array.size((bearfvglow)) > 0)
+    
+    for x = array.size((bearfvglow))-1 to 0
+    
+        if (mit == "full fill high/low")
+            if (not(high_s >= array.get(bearfvglow, x)) and array.get(bearfvglowt, x) >= time - lookback*(bar+2))
+                arrayadd(x, bearfvghigh, bearfvghightemp)
+                arrayadd(x, bearfvghight, bearfvghighttemp)
+                arrayadd(x, bearfvglow, bearfvglowtemp)
+                arrayadd(x, bearfvglowt, bearfvglowttemp)
+        if (mit == "half fill high/low")
+            if (not(high_s >= array.get(bearfvglow, x)-(array.get(bearfvglow, x)-array.get(bearfvghigh, x))/2) and array.get(bearfvglowt, x) >= time - lookback*(bar+2))
+                arrayadd(x, bearfvghigh, bearfvghightemp)
+                arrayadd(x, bearfvghight, bearfvghighttemp)
+                arrayadd(x, bearfvglow, bearfvglowtemp)
+                arrayadd(x, bearfvglowt, bearfvglowttemp)
+        if (mit == "full fill open/close")
+            if ((close_s>open_s ? close_s : open_s) < array.get(bearfvglow, x) and array.get(bearfvglowt, x) >= time - lookback*(bar+2))
+                arrayadd(x, bearfvghigh, bearfvghightemp)
+                arrayadd(x, bearfvghight, bearfvghighttemp)
+                arrayadd(x, bearfvglow, bearfvglowtemp)
+                arrayadd(x, bearfvglowt, bearfvglowttemp)
+        if (mit == "half fill open/close")
+            if ((close_s>open_s ? close_s : open_s) < array.get(bearfvglow, x)-(array.get(bearfvglow, x)-array.get(bearfvghigh, x))/2 and array.get(bearfvglowt, x) >= time - lookback*(bar+2))
+                arrayadd(x, bearfvghigh, bearfvghightemp)
+                arrayadd(x, bearfvghight, bearfvghighttemp)
+                arrayadd(x, bearfvglow, bearfvglowtemp)
+                arrayadd(x, bearfvglowt, bearfvglowttemp)
+
+if (mit != "no mitigation")
+    bearfvghigh := array.copy(bearfvghightemp)
+    bearfvghight := array.copy(bearfvghighttemp)
+    bearfvglow := array.copy(bearfvglowtemp)
+    bearfvglowt := array.copy(bearfvglowttemp)
+    array.clear(bearfvghightemp)
+    array.clear(bearfvghighttemp)
+    array.clear(bearfvglowtemp)
+    array.clear(bearfvglowttemp)
+
+
+
+var bullhighlinearr = array.new_line()
+var bulllowlinearr = array.new_line()
+var bearhighlinearr = array.new_line()
+var bearlowlinearr = array.new_line()
+
+
+
+if (bar_index == last_bar_index)
+
+    if (array.size(bullfvghigh) > 0)
+        n1:=0
+        prevnearbull := high_s
+        for x = array.size((bullfvghigh))-1 to 0
+            if (math.abs(close_s-(array.get(bullfvglow, x)-(array.get(bullfvglow, x)-array.get(bullfvghigh, x))/2)) < prevnearbull)
+                prevnearbull := math.abs(close_s-(array.get(bullfvglow, x)-(array.get(bullfvglow, x)-array.get(bullfvghigh, x))/2))
+                n1 := x
+                    
+        bullhighline := line.new(x1=array.get(bullfvghight, n1), y1=array.get(bullfvghigh, n1), x2=time+(bar*2), y2 = array.get(bullfvghigh, n1),  xloc=xloc.bar_time, color = bullfvg)
+        bulllowline := line.new(x1=array.get(bullfvglowt, n1), y1=array.get(bullfvglow, n1), x2=time+(bar*2), y2 = array.get(bullfvglow, n1),  xloc=xloc.bar_time, color = bullfvg)
+        
+        line.set_x2(bullhighline, time+(bar*2))
+        line.set_x2(bulllowline, time+(bar*2))
+        array.push(bullhighlinearr, bullhighline)
+        array.push(bulllowlinearr, bulllowline)
+
+    if (array.size(bullhighlinearr) > 1)
+        delline1 = array.remove(bullhighlinearr, 0) 
+        line.delete(delline1)
+        delline2 = array.remove(bulllowlinearr, 0) 
+        line.delete(delline2)
+
+     
+    if (array.size(bearfvghigh) > 0)
+        m:=0
+        prevnearbear := high_s
+        for x = array.size((bearfvghigh))-1 to 0
+            if (math.abs(close_s-(array.get(bearfvglow, x)-(array.get(bearfvglow, x)-array.get(bearfvghigh, x))/2)) < prevnearbear)
+                prevnearbear := math.abs(close_s-(array.get(bearfvglow, x)-(array.get(bearfvglow, x)-array.get(bearfvghigh, x))/2))
+                m := x
+                
+        bearhighline := line.new(x1=array.get(bearfvghight, m), y1=array.get(bearfvghigh, m), x2=time+(bar*2), y2 = array.get(bearfvghigh, m),  xloc=xloc.bar_time, color = bearfvg)
+        bearlowline := line.new(x1=array.get(bearfvglowt, m), y1=array.get(bearfvglow, m), x2=time+(bar*2), y2 = array.get(bearfvglow, m),  xloc=xloc.bar_time, color = bearfvg)
+        
+        line.set_x2(bearhighline, time+(bar*2))
+        line.set_x2(bearlowline, time+(bar*2))
+        array.push(bearhighlinearr, bearhighline)
+        array.push(bearlowlinearr, bearlowline)
+
+    if (array.size(bearhighlinearr) > 1)
+        delline3 = array.remove(bearhighlinearr, 0) 
+        line.delete(delline3)
+        delline4 = array.remove(bearlowlinearr, 0) 
+        line.delete(delline4)
+
+    label.delete(bearbpr)
+    label.delete(bullbpr)
+    
+    if (array.size(bulllowlinearr) > 0 and array.size(bearlowlinearr) > 0)
+        if (line.get_y1(array.get(bulllowlinearr, 0)) < line.get_y1(array.get(bearlowlinearr, 0)) and line.get_y1(array.get(bullhighlinearr, 0)) > line.get_y1(array.get(bearhighlinearr, 0)) and bprs)
+            bearbpr := label.new(x=time, y=high_s, text=str.tostring("▼"), xloc=xloc.bar_time, color=color.white, style=label.style_none, textcolor=bearfvg, size=size.normal, textalign=text.align_right)
+    
+        if (line.get_y1(array.get(bearlowlinearr, 0)) < line.get_y1(array.get(bulllowlinearr, 0)) and line.get_y1(array.get(bearhighlinearr, 0)) > line.get_y1(array.get(bullhighlinearr, 0)) and bprs)
+            bearbpr := label.new(x=time, y=high_s, text=str.tostring("▼"), xloc=xloc.bar_time, color=color.white, style=label.style_none, textcolor=bullfvg, size=size.normal, textalign=text.align_right)
+
+// debug label.new(x=time, y=high, text=str.tostring(prevnearbear), xloc=xloc.bar_time, color=color.white, style=label.style_none, textcolor=color.green, size=size.normal, textalign=text.align_right)
+
+
+
+//Variables
+var line[] aBull = array.new<line>()
+var line[] aBear = array.new<line>()
+bearFvg = high_s < low_s[2] and fvg_i   
+bullFvg = low_s  > high_s[2] and fvg_i
+fvgC = bullFvg ? bullFvg_c : bearFvg_c
+
+//FVG Edit Function
+fvgEdit(aBull,aBear,count) =>
+    
+    for s = 0 to 1
+        line[] aLine = aBull
+        int aSize = array.size(aBull)
+        
+        switch s
+            1 => aSize := array.size(aBear), aLine := aBear
+        
+        if aSize > 0
+            for i = aSize - 1 to 0
+                getLine = array.get(aLine,i)
+                y1 = line.get_y1(getLine)
+                y2 = line.get_y2(getLine)
+                cross = low_s < y2
+                crossAdj = low_s < y1
+                
+                switch s
+                    1 => cross := high_s > y2, crossAdj := high_s > y1
+
+                if crossAdj_i and crossAdj and cross_i
+                    switch s
+                        0 => line.set_y1(getLine,low_s)
+                        1 => line.set_y1(getLine,high_s)
+                if cross_i and cross
+                    line.delete(array.remove(aLine,i))
+    
+        if barstate.islast
+            if aSize > count
+                line.delete(array.pop(aLine))
+
+//ifs and make FVG                     
+if bullFvg 
+    array.unshift(aBull,
+     line.new(
+     bar_index - 1, 
+     low_s,
+     bar_index - 1,
+     high_s[2],
+     width = fvg_w,
+     color = fvgC)) 
+if bearFvg 
+    array.unshift(aBear,
+     line.new(
+     bar_index - 1, 
+     high_s,
+     bar_index - 1,
+     low_s[2],
+     width = fvg_w,
+     color = fvgC)) 
+
+//Fun Call     
+fvgEdit(aBull,aBear,count_i)     
+
+
+
+[srcClose] = request.security("BINANCE:BTCUSDTPERP_OI", timeframe.period, [close]) 
+Percent_OI = ((srcClose - srcClose[1]) / (srcClose[1])) *100
+OI_in = input.float(0.1,'OI input',step=0.1, minval=0.1, maxval=100)
+show_spike_oi = Percent_OI > OI_in ? true : Percent_OI < -OI_in ? true : false
+
+[srcVolume_Binance_spot] = request.security("BINANCE:BTCUSDT", "", [volume])
+[srcVolume_Binance_perp] = request.security("BINANCE:BTCPERP", "", [volume])
+[srcVolume_FTX] = request.security("KUCOIN:BTCUSDT", "", [volume])
+[srcVolume_BYBIT] = request.security("BYBIT:BTCUSDT.P", "", [volume])
+
+Ticker01_col = input(true, title='Show Binance Spot Vol')
+Ticker02_col = input(true, title='Show Binance Perp Vol')
+Ticker03_col = input(false, title='Show Bitstamp USD Vol')
+Ticker04_col = input(true, title='Show Bybit Vol')
+Vnlen_Binance_spot  = input.float(2.8,'Volume Strength for BINANCE SPOT',step=0.1, minval=0.1, maxval=100)
+Vnlen_Binance_perp  = input.float(5.8,'Volume Strength for BINANCE PERP',step=0.1, minval=0.1, maxval=100)
+Vnlen_FTX  = input.float(5.4,'Volume Strength for BITSTAMP',step=0.1, minval=0.1, maxval=100)
+Vnlen_BYBIT  = input.float(5.9,'Volume Strength for BYBIT',step=0.1, minval=0.1, maxval=100)
+
+smaa=ta.sma(close,20)
+direction = close<smaa ? low_s-15: high_s+15
+direction2 = close<smaa ? low_s-25 : high_s+25
+direction3 = close<smaa ? low_s-35 : high_s+35
+direction4 = close<smaa ? low_s-45 : high_s+45
+direction5 = close<smaa ? low_s-55 : high_s+3
+
+direction_label = open>close ? yloc.belowbar : yloc.abovebar
+
+vol_Binance_spot = srcVolume_Binance_spot > 0 ? srcVolume_Binance_spot : 1
+VN_Binance_spot = vol_Binance_spot / ta.ema(vol_Binance_spot, 20)
+VNcolors_Binance_spot = VN_Binance_spot > Vnlen_Binance_spot and close > open ? color.new(#fff59d,30) : VN_Binance_spot > Vnlen_Binance_spot and close < open ? color.new(#fff59d, 30) : color.new(#b2b5be, 100)
+plot(show_spike_oi and not Show_3_exc ? direction :na , style=plot.style_circles, linewidth=1, color= Ticker01_col ? VNcolors_Binance_spot : na, offset=0)
+
+vol_Binance_perp = srcVolume_Binance_perp > 0 ? srcVolume_Binance_perp : 1
+VN_Binance_perp = vol_Binance_perp / ta.ema(vol_Binance_perp, 20)
+VNcolors_Binance_perp = VN_Binance_perp > Vnlen_Binance_perp and close > open ? color.new(#22ab94,30) : VN_Binance_perp > Vnlen_Binance_perp and close < open ? color.new(#22ab94, 30) : color.new(#b2b5be, 100)
+plot(show_spike_oi and not Show_3_exc ? direction2 :na, style=plot.style_circles, linewidth=1, color= Ticker02_col ? VNcolors_Binance_perp : na, offset=0)
+
+vol_FTX = srcVolume_FTX > 0 ? srcVolume_FTX : 1
+VN_FTX = vol_FTX / ta.ema(vol_FTX, 20)
+VNcolors_FTX = VN_FTX > Vnlen_FTX and close > open ? color.new(#f74141, 30) : VN_FTX > Vnlen_FTX and close < open ? color.new(#ff4141, 30) : color.new(#b2b5be, 100)
+plot(show_spike_oi and not Show_3_exc ? direction3 :na , style=plot.style_circles, linewidth=1, color= Ticker03_col ? VNcolors_FTX : na, offset=0)
+
+vol_BYBIT = srcVolume_BYBIT > 0 ? srcVolume_BYBIT : 1
+VN_BYBIT = vol_BYBIT / ta.ema(vol_BYBIT, 20)
+VNcolors_BYBIT = VN_BYBIT > Vnlen_BYBIT and close > open ? color.new(#d8d6d8,30) : VN_BYBIT > Vnlen_BYBIT and close < open ? color.new(#d8d6d8, 30) : color.new(#b2b5be, 100)
+plot(show_spike_oi and not Show_3_exc ? direction4 :na, style=plot.style_circles, linewidth=1, color= Ticker04_col ? VNcolors_BYBIT : na, offset=0)
+
+VNcolors_BYBIT_BINANCEPERP_SPOT = VN_FTX > Vnlen_FTX and  VN_BYBIT > Vnlen_BYBIT and VN_Binance_perp > Vnlen_Binance_perp and VN_Binance_spot > Vnlen_Binance_spot and close > open ? color.new(#437efc, 0) :VN_FTX > Vnlen_FTX and VN_Binance_spot > Vnlen_Binance_spot and VN_BYBIT > Vnlen_BYBIT and VN_Binance_perp > Vnlen_Binance_perp and close < open ? color.new(#437efc, 30) : color.new(#b2b5be, 100)
+plot(show_spike_oi and Show_3_exc ? direction5 :na, style=plot.style_circles, linewidth=2, color= Ticker04_col ? VNcolors_BYBIT_BINANCEPERP_SPOT : na, offset=0)
+
+/////////////////////////////////////////////////////
+
+
+// Constants
+color CLEAR = color.rgb(0,0,0,100)
+
+// Inputs
+swingSize = input.int(20, 'Swing Length', tooltip='The number of left and right bars checked when searching for a swing point. Higher value = less swing points plotted and lower value = more swing points plotted.', group='SMC' )
+bosConfType = input.string('Candle Close', 'BOS Confirmation', ['Candle Close', 'Wicks'], tooltip='Choose whether candle close/wick above previous swing point counts as a BOS.')
+choch = input.bool(false, 'Show CHoCH', tooltip='Renames the first counter trend BOS to CHoCH', group='SMC'  )
+showSwing = input.bool(true, 'Show Swing Points', tooltip='Show or hide HH, LH, HL, LL', group='SMC' )
+
+showHalf = input.bool(false, 'Show 0.5 Retracement Level', group='SMC', tooltip='Show a possible 0.5 retracement level between the swing highs and lows of an expansion move.' )
+halfColor = input.color(color.rgb(41, 39, 176), 'Color', group='SMC')
+halfStyle = input.string('Solid', 'Line Style', ['Solid', 'Dashed', 'Dotted'], group='SMC')
+halfWidth = input.int(1, 'Width', minval=1, group='SMC')
+
+bosColor = input.color(color.rgb(112, 114, 119), 'Color', group='SMC')
+bosStyle = input.string('Dashed', 'Line Style', ['Solid', 'Dashed', 'Dotted'], group='SMC')
+bosWidth = input.int(1, 'Width', minval=1, group='SMC')
+
+// Functions
+lineStyle(x) =>
+    switch x
+        'Solid' => line.style_solid
+        'Dashed' => line.style_dashed
+        'Dotted' => line.style_dotted
+
+
+// Calculations
+
+//Finding high and low pivots
+pivHi = ta.pivothigh(high_s, swingSize, swingSize)
+pivLo = ta.pivotlow(low_s, swingSize, swingSize)
+
+
+//Tracking the previous swing levels to determine hh lh hl ll
+var float prevHigh = na
+var float prevLow = na
+var int prevHighIndex = na
+var int prevLowIndex = na
+
+//Tracking whether previous levels have been breached
+var bool highActive = false
+var bool lowActive = false
+
+bool hh = false
+bool lh = false
+bool hl = false
+bool ll = false
+
+//Variable to track the previous swing type, used later on to draw 0.5 Retracement Levels (HH = 2, LH = 1, HL = -1, LL = -2)
+var int prevSwing = 0
+
+if not na(pivHi)
+    if pivHi >= prevHigh
+        hh := true
+        prevSwing := 2
+    else
+        lh := true
+        prevSwing := 1
+    prevHigh := pivHi
+    highActive := true
+    prevHighIndex := bar_index - swingSize
+
+if not na(pivLo)
+    if pivLo >= prevLow
+        hl := true
+        prevSwing := -1
+    else
+        ll := true
+        prevSwing := -2
+    prevLow := pivLo
+    lowActive := true
+    prevLowIndex := bar_index - swingSize
+
+//Generating the breakout signals
+bool highBroken = false
+bool lowBroken = false
+
+//Tracking prev breakout
+var int prevBreakoutDir = 0
+
+float highSrc = bosConfType == 'Candle Close' ? close_s : high_s
+float lowSrc = bosConfType == 'Candle Close' ? close_s : low_s
+
+if highSrc > prevHigh and highActive
+    highBroken := true
+    highActive := false
+if lowSrc < prevLow and lowActive
+    lowBroken := true
+    lowActive := false
+
+
+// Visual Output
+
+//Swing level labels
+if hh and showSwing
+    label.new(bar_index - swingSize, pivHi, '▼', color=CLEAR, style=label.style_label_down, textcolor=chart.fg_color,size=size.tiny)
+    //Detecting if it is a hh after a hl
+    if prevSwing[1] == -1 and showHalf
+        line.new(prevLowIndex, (prevLow + pivHi) / 2, bar_index - swingSize, (prevLow + pivHi) / 2, color=halfColor, style=lineStyle(halfStyle), width=halfWidth)
+if lh and showSwing
+    label.new(bar_index - swingSize, pivHi, '▽', color=CLEAR,style=label.style_label_down, textcolor=chart.fg_color,size=size.tiny)
+if hl and showSwing
+    label.new(bar_index - swingSize, pivLo, '▲', color=CLEAR, style=label.style_label_up, textcolor=chart.fg_color,size=size.tiny)
+if ll and showSwing
+    label.new(bar_index - swingSize, pivLo, '△', color=CLEAR, style=label.style_label_up, textcolor=chart.fg_color,size=size.tiny)
+    //Detecting if it is a ll after a lh
+    if prevSwing[1] == 1 and showHalf
+        line.new(prevHighIndex, (prevHigh + pivLo) / 2, bar_index - swingSize, (prevHigh + pivLo) / 2, color=halfColor, style=lineStyle(halfStyle), width=halfWidth)
+
+//Generating the BOS Lines
+if highBroken
+    line.new(prevHighIndex, prevHigh, bar_index, prevHigh, color=bosColor, style=lineStyle(bosStyle), width=bosWidth)
+    label.new(math.floor(bar_index - (bar_index - prevHighIndex) / 2), prevHigh, prevBreakoutDir == -1 and choch ? 'CHoCH' : 'BOS', color=CLEAR, textcolor=bosColor, size=size.tiny)
+    prevBreakoutDir := 1
+if lowBroken
+    line.new(prevLowIndex, prevLow, bar_index, prevLow, color=bosColor, style=lineStyle(bosStyle), width=bosWidth)
+    label.new(math.floor(bar_index - (bar_index - prevLowIndex) / 2), prevLow, prevBreakoutDir == 1 and choch ? 'CHoCH' : 'BOS', color=CLEAR, textcolor=bosColor, style=label.style_label_up, size=size.tiny)
+    prevBreakoutDir := -1

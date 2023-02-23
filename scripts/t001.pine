@@ -1,0 +1,191 @@
+// Jo
+//@version=5
+indicator('Multi Exchnage Wicks and FVG',overlay = true, max_lines_count = 500,max_labels_count = 500,max_boxes_count = 500,max_bars_back = 5000,explicit_plot_zorder = true)
+import FFriZz/BoxLine_Lib/1 as obj
+
+show_volume_gra    = input.bool(true, 'Show gradient volume candles',confirm=true, group = "Volume Candles")
+customUpColorT     = input.color(color.new(#0683f1, 0), "Up Color of gradient vol candles", group = "Volume Candles")
+customDownColorT   = input.color(color.new(#f82104, 0), "Down Color of gradient vol candles", group = "Volume Candles")
+length             = input.int(400, "Volume Lookback Period", 2, group = "Volume Candles")
+
+FVG_on_off         = input.bool(true,'Show FVG', group = "FVG")
+fvg_w              = input.int(6,'FVG Width', group = "FVG")
+FVG_count          = input.int(100,'Display Count', group = "FVG")
+delete_filled_gaps = input.bool(true,'Delete FVG when Completely filled', group = "FVG")
+fvg_mitigation     = input.bool(true,'Reduce Gap Size as it is Being Mitigated', group = "FVG")
+bullFvg_c          = input.color(color.new(#fcfdfd, 0),'FVG Color', group = "FVG")
+
+switch_off_dots    = input.bool(false,'Plot dots', group = "Dot Plots")
+dot_c              = input.color(color.new(#0c3299,50),title="Dot color", group = "Dot Plots")
+plot_candle        = input.bool(true,'Plot candle wicks', group = "Candle Wicks")
+wickcol            = input.color(color.new(#080808, 83),title="Candle wick color", group = "Candle Wicks")
+bearFvg_c          = bullFvg_c
+
+show_t1            = input.bool(true, 'BINANCE:BTCUSDT', group = "Global Settings")
+show_t2            = input.bool(true, 'BYBIT:BTCUSDT.P', group = "Global Settings")
+show_t3            = input.bool(true, 'BINANCE:BTCPERP', group = "Global Settings")
+show_t4            = input.bool(true, 'BINANCE:BTCUSDTPERP', group = "Global Settings")
+show_t5            = input.bool(true, 'BYBIT:BTCUSD', group = "Global Settings")
+show_t6            = input.bool(true, 'COINBASE:BTCUSDT', group = "Global Settings")
+show_t7            = input.bool(false, 'KUCOIN:BTCUSDT', group = "Global Settings")
+show_t8            = input.bool(false, 'OKX:BTCUSDT', group = "Global Settings")
+show_t11           = input.bool(false, 'BITFINEX:BTCUSD', group = "Global Settings")
+show_t12           = input.bool(true, 'POLONIEX:BTCUSDT', group = "Global Settings")
+show_t13           = input.bool(false, 'BITMEX:XBTUSDT', group = "Global Settings")
+
+[low_t1,high_t1,open_t1,close_t1,t1_volume]     = request.security("BINANCE:BTCUSDT",              timeframe.period, [low,high,open,close,volume]) 
+[low_t2,high_t2,open_t2,close_t2,t2_volume]     = request.security("BYBIT:BTCUSDT.P",              timeframe.period, [low,high,open,close,volume]) 
+[low_t3,high_t3,open_t3,close_t3,t3_volume]     = request.security("BINANCE:BTCPERP",              timeframe.period, [low,high,open,close,volume]) 
+[low_t4,high_t4,open_t4,close_t4,t4_volume]     = request.security("BINANCE:BTCUSDTPERP",          timeframe.period, [low,high,open,close,volume]) 
+[low_t5,high_t5,open_t5,close_t5]     = request.security("BYBIT:BTCUSD",                 timeframe.period, [low,high,open,close])
+[low_t6,high_t6,open_t6,close_t6]     = request.security("COINBASE:BTCUSDT",             timeframe.period, [low,high,open,close])
+[low_t7,high_t7,open_t7,close_t7]     = request.security("KUCOIN:BTCUSDT",               timeframe.period, [low,high,open,close])
+[low_t8,high_t8,open_t8,close_t8]     = request.security("OKX:BTCUSDT",                  timeframe.period, [low,high,open,close])
+[low_t11,high_t11,open_t11,close_t11] = request.security("BITFINEX:BTCUSD",              timeframe.period, [low,high,open,close])
+[low_t12,high_t12,open_t12,close_t12] = request.security("POLONIEX:BTCUSDT",             timeframe.period, [low,high,open,close])
+[low_t13,high_t13,open_t13,close_t13] = request.security("BITMEX:XBTUSDT",               timeframe.period, [low,high,open,close])
+
+a1 = show_t1 ? low_t1 : low
+a2 = show_t2 ? low_t2 : low
+a3 = show_t3 ? low_t3 : low
+a4 = show_t4 ? low_t4 : low
+a5 = show_t5 ? low_t5 : low
+a6 = show_t6 ? low_t6 : low
+a7 = show_t7 ? low_t7 : low
+a8 = show_t8 ? low_t8 : low
+a11 = show_t11 ? low_t11 : low
+a12 = show_t12 ? low_t12 : low
+a13 = show_t13 ? low_t13 : low
+
+b1 = show_t1 ? high_t1 : high
+b2 = show_t2 ? high_t2 : high
+b3 = show_t3 ? high_t3 : high
+b4 = show_t4 ? high_t4 : high
+b5 = show_t5 ? high_t5 : high
+b6 = show_t6 ? high_t6 : high
+b7 = show_t7 ? high_t7 : high
+b8 = show_t8 ? high_t8 : high
+b11 = show_t11 ? high_t11 : high
+b12 = show_t12 ? high_t12 : high
+b13 = show_t13 ? high_t13 : high
+
+low_s   = math.min(a1, a2, a3, a4, a5, a6, a7, a8,  a11, a12, a13)
+high_s  = math.max(b1, b2, b3, b4, b5, b6, b7, b8,   b11, b12, b13)
+close_s = math.avg(close_t1, close_t2, close_t3, close_t4, close_t5, close_t6, close_t7, close_t8,   close_t11, close_t12, close_t13)
+open_s  = math.avg(open_t1, open_t2, open_t3, open_t4, open_t5, open_t6, open_t7, open_t8,  open_t11, open_t12, open_t13)
+trans_p = color.new(color.black,100)
+
+plotcandle(plot_candle ? open_s:na, high_s, low_s, close_s, title="High Low Candle",  bordercolor=trans_p, color = trans_p, wickcolor=wickcol)
+
+//FVG Starts
+var line[] aBull = array.new<line>()
+var line[] aBear = array.new<line>()
+bearFvg = high_s < low_s[2] and FVG_on_off and true 
+bullFvg = low_s  > high_s[2] and FVG_on_off and true
+fvgC = bullFvg ? bullFvg_c : bearFvg_c
+
+fvgEdit(aBull,aBear,count) =>
+    
+    for s = 0 to 1
+        line[] aLine = aBull
+        int aSize = array.size(aBull)
+        
+        switch s
+            1 => aSize := array.size(aBear), aLine := aBear
+        
+        if aSize > 0
+            for i = aSize - 1 to 0
+                getLine = array.get(aLine,i)
+                y1 = line.get_y1(getLine)
+                y2 = line.get_y2(getLine)
+                cross = low_s < y2
+                crossAdj = low_s < y1
+                
+                switch s
+                    1 => cross := high_s > y2, crossAdj := high_s > y1
+
+                if fvg_mitigation and crossAdj and delete_filled_gaps
+                    switch s
+                        0 => line.set_y1(getLine,low_s)
+                        1 => line.set_y1(getLine,high_s)
+                if delete_filled_gaps and cross
+                    line.delete(array.remove(aLine,i))
+    
+        if barstate.islast
+            if aSize > count
+                line.delete(array.pop(aLine))
+                    
+if bullFvg 
+    array.unshift(aBull,
+     line.new(
+     bar_index - 1, 
+     low_s,
+     bar_index - 1,
+     high_s[2],
+     width = fvg_w,
+     color = fvgC)) 
+if bearFvg 
+    array.unshift(aBear,
+     line.new(
+     bar_index - 1, 
+     high_s,
+     bar_index - 1,
+     low_s[2],
+     width = fvg_w,
+     color = fvgC)) 
+
+//Fun Call     
+fvgEdit(aBull,aBear,FVG_count)     
+     
+bear_index = ta.barssince(bearFvg)
+bull_index = ta.barssince(bullFvg)
+
+plot(show_t1 and switch_off_dots ? low_t1  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t1 and switch_off_dots ? high_t1 :na , title ='', color =dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t2 and switch_off_dots ? low_t2  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t2 and switch_off_dots ? high_t2 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t3 and switch_off_dots ? low_t3  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t3 and switch_off_dots ? high_t3 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t4 and switch_off_dots ? low_t4  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t4 and switch_off_dots ? high_t4 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t5 and switch_off_dots ? low_t5  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t5 and switch_off_dots ? high_t5 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t6 and switch_off_dots ? low_t6  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t6 and switch_off_dots ? high_t6 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t7 and switch_off_dots ? low_t7  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t7 and switch_off_dots ? high_t7 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t8 and switch_off_dots ? low_t8  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t8 and switch_off_dots ? high_t8 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t11 and switch_off_dots ? low_t11  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t11 and switch_off_dots ? high_t11 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t12 and switch_off_dots ? low_t12  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t12 and switch_off_dots ? high_t12 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+plot(show_t13 and switch_off_dots ? low_t13  :na , title  ='', color= dot_c, style=plot.style_cross, linewidth=1)
+plot(show_t13 and switch_off_dots ? high_t13 :na , title ='', color= dot_c, style=plot.style_cross, linewidth=1)
+
+
+bodyColorToggle      = true
+borderColorToggle    = true
+wickColorToggle      = true
+
+//Volume for last N periods
+var int [] pastVol = array.new_int(length)
+for i = 0 to length - 1
+    array.set(pastVol, i, int(volume[i]))
+
+//Heatmap color assignments
+upColor   = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customUpColorT)
+downColor = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customDownColorT)
+
+//Plot high vol candles
+plotcandle(show_volume_gra ? open:na, high, low, close, "Volume Heatmap Candlestick Colors", bodyColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), wickColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), bordercolor=borderColorToggle ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100))

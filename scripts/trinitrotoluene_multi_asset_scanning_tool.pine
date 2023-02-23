@@ -1,0 +1,727 @@
+//Jo-Pippin - I who is Jo-Pippin may have, but certainly did copy some lines of code from the open source lib within Tradingview. I who goes by the name of Jo-Pippin may be, but certainly is an idiot. Credits to them all! 
+//@version=5
+indicator("Trinitrotoluene", overlay=true, max_bars_back = 5000)
+
+Show_table           = input(true, "Show Data Table" ,group = "Global")
+Show_perc            = true
+
+Show_price_vwap      = input(false, "Show AVWAP Prices" ,group = "Global")
+Show_price_ath       = input(false, "Show ATH Prices" ,group = "Global")
+Show_price_mday      = input(false, "Show Monday H L Prices" ,group = "Global")
+Show_price_phpl      = input(false, "Show Pivot H L Prices" ,group = "Global")
+Show_price_ema       = input(false, "Show EMA/SMA Prices" ,group = "Global")
+Show_price           = input(false, "Show Weekly and Monthly Open Prices" ,group = "Global")
+Show_price_fib       = input(false, "Show Fib Prices" ,group = "Global")
+inp_simb             = input.string("Exchange + Symbol", options = ["Exchange + Symbol", "Symbol Only"], title = "Symbol Display",group = "Global")
+Hiding_Price_range   = input.float (1.3,'Highligh values when current price is x % away',step=0.1, minval=0.1, maxval=500,group = "Global")
+
+in_table_size        = input.string(title = "Text Size", defval="Small", options=["Auto",  "Huge",  "Large", "Normal", "Small", "Tiny"],group = "Global")
+cell_txtcolw         = input.color(color.new(#ffffff,0), title="Top & Ticker Text Color",group = "Global")
+cell_txtcol          = input.color(color.new(#787b86,0), title="General Text Color",group = "Global")
+vwap_color_i         = input.color(color.new(#ffffff, 0),   title = "Color values when current price is x % away",group = "Global")
+
+table_sort_by        = input.string(title = "Sort by", defval="None", options =["None", "Symbol", "W Vwap %", "M Vwap %", "Q Vwap %", "Y Vwap %","H Vwap %", "C Vwap %","ATH %", "Monday Open %", "Monday High %", "Monday Low %", "Pivot H %", "Pivot L %","EMA OR SMA %"],group = "Global")
+table_sort_dir       = input.string(title = "Direction", defval="Ascending", options =["Ascending", "Descending"],group = "Global")
+dec                  = input.int(2, title = "Decimal Points for % values" ,     minval=0, maxval =4,group = "Global")
+decval               = input.int(2, title = "Decimal Points for price values" , minval=0, maxval =4,group = "Global")
+inp_line_style       = input.string("Step", options = ["Step", "Line"], title = "AVWAP $ EMA/SAM Line Style",group = "Vwaps")
+Line_st              = inp_line_style == "Step" ? plot.style_stepline : inp_line_style == "Line" ? plot.style_line : na
+
+show_highlow         = input(true,  "Show Pivot High and Pivot Low Lines",                    group ='Pivot Lines')
+top_line_c           = input.color(color.new(#f7fafb, 70), title = 'Top/Bot Line Color',    group ='Pivot Lines')
+
+plot_emasma          = input(false, "EMA Line",      group ='EMA')
+ema_len              = input.int (200,title="EMA Length",group ='EMA')
+emasma_c             = input.color(color.new(#08617e, 20), title = 'EMA Color', group ='EMA')
+
+plot_sma             = input(false, "SMA Line",      group ='SMA')
+sma_len              = input.int (200,title="SMA Length",group ='SMA')
+sma_c                = input.color(color.new(#ea0f37, 20), title = 'SMA Color', group ='SMA')
+
+src                  = input(ohlc4, "Vwap Source",      group = "Vwaps")
+Show_labels          = input(false, "Show Vwap Labels", group = "Vwaps")
+
+plot_vW              = input(false, "Weekly VWAP Line",      group = "Vwaps")
+vwap_color_w         = input.color(color.new(#f7fafb, 70),   title = "Weekly Vwap Color"    ,group = "Vwaps")
+plot_vM              = input(false, "Monthly VWAP Line",     group = "Vwaps")
+vwap_color_m         = input.color(color.new(#f7fafb, 70),   title = "Monthly Vwap Color"   ,group = "Vwaps") 
+plot_vQ              = input(false, "Quarterly VWAP Line (Timeframe H2 and above)",   group = "Vwaps")
+vwap_color_q         = input.color(color.new(#f7fafb, 70),   title = "Quarterly Vwap Color" ,group = "Vwaps")
+plot_vY              = input(false, "Yearly VWAP Line (Timeframe H2 and above)",      group = "Vwaps")
+vwap_color_y         = input.color(color.new(#f7fafb, 70),   title = "Yearly Vwap Color"    ,group = "Vwaps")
+plot_vH              = input(false, "Halving VWAP Line (Timeframe H4 and above)",     group = "Vwaps")
+vwap_color_h         = input.color(color.new(#f7fafb, 70),   title = "Halving Vwap Color"   ,group = "Vwaps")
+plot_vC              = input(false, "Custom VWAP Line",      group = "Vwaps")
+vwap_color_c         = input.color(color.new(#f7fafb, 70),   title = "Custom Vwap Color"    ,group = "Vwaps") 
+
+border_c             = input.color(color.new(#434651, 0),   title = "Table Border Color"    ,group = "Border Color")
+neg_bgcol            = input.color(color.new(#131824, 0),   title = "Neg Symbol Color"   ,group = "Column Color")
+pos_bgcol            = input.color(color.new(#131722, 0),   title = "Pos Symbol Color"   ,group = "Column Color")
+
+date_top             = input.time(0,title ='HL Pivot Lines Starting Point',   confirm = true)
+startCalculationDate = input.time(timestamp("20 Jan 2023"), "Custom VWAP Anchor Point", confirm=true)
+last_halving_date    = timestamp("13 May 2020 00:00")
+
+simb                 = inp_simb == "Exchange + Symbol" ? "|" : inp_simb == "Symbil Only" ? ":" : ":"
+simb2                = inp_simb == "Symbil Only" ? 1 : inp_simb == "Exchange + Symbol" ? 0:1
+
+leftborder_top       = timenow - time < timenow - date_top
+leftborder_bot       = leftborder_top
+rightborder          = barstate.islast
+
+dperc =  dec  == 0 ? "#%"     :
+         dec  == 1 ? "#.#%"   : 
+         dec  == 2 ? "#.##%"  : 
+         dec  == 3 ? "#.###%" : 
+         dec  == 4 ? "#.####%" : na
+
+dprice = dec  == 0 ? "#"     :
+         dec  == 1 ? "#.#"   : 
+         dec  == 2 ? "#.##"  : 
+         dec  == 3 ? "#.###" : 
+         dec  == 4 ? "#.####" : na
+
+u01 = input.bool(true,  title = "",  group = 'Symbols', inline = 's01')
+u02 = input.bool(true,  title = "",  group = 'Symbols', inline = 's02')
+u03 = input.bool(true,  title = "",  group = 'Symbols', inline = 's03')
+u04 = input.bool(true,  title = "",  group = 'Symbols', inline = 's04')
+u05 = input.bool(true,  title = "",  group = 'Symbols', inline = 's05')
+u06 = input.bool(true,  title = "",  group = 'Symbols', inline = 's06')
+u07 = input.bool(true,  title = "",  group = 'Symbols', inline = 's07')
+u08 = input.bool(true,  title = "",  group = 'Symbols', inline = 's08')
+u09 = input.bool(true,  title = "",  group = 'Symbols', inline = 's09')
+u10 = input.bool(true,  title = "",  group = 'Symbols', inline = 's10')
+u11 = input.bool(true,  title = "",  group = 'Symbols', inline = 's11')
+u12 = input.bool(true,  title = "",  group = 'Symbols', inline = 's12')
+u13 = input.bool(true,  title = "",  group = 'Symbols', inline = 's13')
+u14 = input.bool(true,  title = "",  group = 'Symbols', inline = 's14')
+u15 = input.bool(true,  title = "",  group = 'Symbols', inline = 's15')
+u16 = input.bool(true,  title = "",  group = 'Symbols', inline = 's16')
+u17 = input.bool(true,  title = "",  group = 'Symbols', inline = 's17')
+u18 = input.bool(true,  title = "",  group = 'Symbols', inline = 's18')
+u19 = input.bool(true,  title = "",  group = 'Symbols', inline = 's19')
+u20 = input.bool(true,  title = "",  group = 'Symbols', inline = 's20')
+u21 = input.bool(true,  title = "",  group = 'Symbols', inline = 's21')
+u22 = input.bool(true,  title = "",  group = 'Symbols', inline = 's22')
+u23 = input.bool(true,  title = "",  group = 'Symbols', inline = 's23')
+u24 = input.bool(true,  title = "",  group = 'Symbols', inline = 's24')
+u25 = input.bool(true,  title = "",  group = 'Symbols', inline = 's25')
+u26 = input.bool(true,  title = "",  group = 'Symbols', inline = 's26')
+u27 = input.bool(true,  title = "",  group = 'Symbols', inline = 's27')
+u28 = input.bool(true,  title = "",  group = 'Symbols', inline = 's28')
+u29 = input.bool(true,  title = "",  group = 'Symbols', inline = 's29')
+u30 = input.bool(true,  title = "",  group = 'Symbols', inline = 's30')
+u31 = input.bool(true,  title = "",  group = 'Symbols', inline = 's31')
+u32 = input.bool(true,  title = "",  group = 'Symbols', inline = 's32')
+u33 = input.bool(true,  title = "",  group = 'Symbols', inline = 's33')
+u34 = input.bool(true,  title = "",  group = 'Symbols', inline = 's34')
+
+
+
+
+s01 = input.symbol('BTCUSDT',   group = 'Symbols', inline = 's01')
+s02 = input.symbol('ETHUSDT',   group = 'Symbols', inline = 's02')
+s03 = input.symbol('YFIUSDT',   group = 'Symbols', inline = 's03')
+s04 = input.symbol('LINKUSDT',  group = 'Symbols', inline = 's04')
+s05 = input.symbol('XMRUSDT',   group = 'Symbols', inline = 's05')
+s06 = input.symbol('IOTAUSDT',  group = 'Symbols', inline = 's06')
+s07 = input.symbol('EOSUSDT',   group = 'Symbols', inline = 's07')
+s08 = input.symbol('VETUSDT',   group = 'Symbols', inline = 's08')
+s09 = input.symbol('BNBUSDT',   group = 'Symbols', inline = 's09')
+s10 = input.symbol('XRPUSDT',   group = 'Symbols', inline = 's10')
+s11 = input.symbol('APEPERP',   group = 'Symbols', inline = 's11')
+s12 = input.symbol('ETCUSDT',   group = 'Symbols', inline = 's12')
+s13 = input.symbol('DOGEUSDT',  group = 'Symbols', inline = 's13')
+s14 = input.symbol('ADAUSDT',   group = 'Symbols', inline = 's14')
+s15 = input.symbol('UNIUSDT',   group = 'Symbols', inline = 's15')
+s16 = input.symbol('MATICUSDT', group = 'Symbols', inline = 's16')
+s17 = input.symbol('AAVEUSDT',  group = 'Symbols', inline = 's17')
+s18 = input.symbol('LTCUSDT',   group = 'Symbols', inline = 's18')
+s19 = input.symbol('NKNUSDT',   group = 'Symbols', inline = 's19')
+s20 = input.symbol('SNXUSDT',   group = 'Symbols', inline = 's20')
+s21 = input.symbol('AXSUSDT',   group = 'Symbols', inline = 's21')
+s22 = input.symbol('ILVUSDT',   group = 'Symbols', inline = 's22')
+s23 = input.symbol('ENJUSDT',   group = 'Symbols', inline = 's23')
+s24 = input.symbol('DOTUSDT',   group = 'Symbols', inline = 's24')
+s25 = input.symbol('FTMUSDT',   group = 'Symbols', inline = 's25')
+s26 = input.symbol('NEOUSDT',   group = 'Symbols', inline = 's26')
+s27 = input.symbol('CFXUSDT',   group = 'Symbols', inline = 's27')
+s28 = input.symbol('AVAXUSDT',  group = 'Symbols', inline = 's28')
+s29 = input.symbol('SOLUSDT',   group = 'Symbols', inline = 's29')
+s30 = input.symbol('ZECUSDT',   group = 'Symbols', inline = 's30')
+s31 = input.symbol('DASHUSDT',  group = 'Symbols', inline = 's31')
+s32 = input.symbol('TRXUSDT',   group = 'Symbols', inline = 's32')
+s33 = input.symbol('MINAUSDT',  group = 'Symbols', inline = 's33')
+s34 = input.symbol('BCHUSDT',   group = 'Symbols', inline = 's34')
+
+
+f_strLeftOf(_str, _of) =>
+
+    string[] _chars = str.split(_str, '')
+    int _len = array.size(_chars)
+    int _ofPos = array.indexof(_chars, _of)
+    string[] _substr = array.new_string(0)
+    if _ofPos > 0 and _ofPos <= _len - 1
+        _substr := array.slice(_chars, 0, _ofPos)
+        _substr
+    string _return = array.join(_substr, '')
+    _return
+
+only_symbol(s) => 
+    array.get(str.split(s, simb ), simb2)
+
+table_pos(p) => 
+    switch p
+        "Top Right"     => position.top_right     
+        "Middle Right"  => position.middle_right   
+        "Bottom Right"  => position.bottom_right  
+        "Top Center"    => position.top_center    
+        "Middle Center" => position.middle_center
+        "Bottom Center" => position.bottom_center
+        "Top Left"      => position.top_left      
+        "Middle Left"   => position.middle_left 
+        => position.bottom_left
+
+// Get Table Size
+table_size(s) => 
+    switch s
+        "Auto"   => size.auto   
+        "Huge"   => size.huge   
+        "Large"  => size.large  
+        "Normal" => size.normal 
+        "Small"  => size.small
+        => size.tiny
+
+vwap_t1() =>
+    var srcVolArray = array.new_float(na)
+    var volArray = array.new_float(na)
+    if startCalculationDate <= time
+        array.push(srcVolArray, src*volume)
+        array.push(volArray, volume)
+    else
+        array.clear(srcVolArray), array.clear(volArray)
+    array.sum(srcVolArray)/array.sum(volArray)
+vt1 = vwap_t1()
+
+vwap_t2() =>
+    var srcVolArray1 = array.new_float(na)
+    var volArray1 = array.new_float(na)
+    if last_halving_date <= time
+        array.push(srcVolArray1, src*volume)
+        array.push(volArray1, volume)
+    else
+        array.clear(srcVolArray1), array.clear(volArray1)
+    array.sum(srcVolArray1)/array.sum(volArray1)
+halving_vwap = vwap_t2()
+
+computeVWAP1(src, isNewPeriod) =>
+	var float sumSrcVol = na
+	var float sumVol = na
+    var float sumSrcSrcVol = na
+
+	sumSrcVol := isNewPeriod ? src * volume : src * volume + sumSrcVol[1]
+	sumVol := isNewPeriod ? volume : volume + sumVol[1]
+	sumSrcSrcVol := isNewPeriod ? volume * math.pow(src, 2) : volume * math.pow(src, 2) + sumSrcSrcVol[1]
+
+	_vwap = sumSrcVol / sumVol
+	variance = sumSrcSrcVol / sumVol - math.pow(_vwap, 2)
+	variance := variance < 0 ? 0 : variance
+	stDev = math.sqrt(variance)
+	[_vwap]
+
+timeChange(period) =>
+	ta.change(time(period))
+
+newSessionW = timeChange("W")
+newSessionM = timeChange("M")
+newSessionQ = timeChange("3M")
+newSessionY = timeChange("12M")
+
+[vt1w] = computeVWAP1(src, newSessionW)
+[vt1m] = computeVWAP1(src, newSessionM)
+[vt1q] = computeVWAP1(src, newSessionQ)
+[vt1y] = computeVWAP1(src, newSessionY)
+
+/////hi lo
+max = float(na)
+max := not leftborder_top ? na : na(max[1]) ? high : max[1]
+barsSinceLastHigh = int(na)
+barsSinceLastHigh := not leftborder_top ? na : na(barsSinceLastHigh[1]) ? 0 : barsSinceLastHigh + 1
+
+min = float(na)
+min := not leftborder_bot ? na : na(min[1]) ? low : min[1]
+barsSinceLastLow = int(na)
+barsSinceLastLow := not leftborder_bot ? na : na(barsSinceLastLow[1]) ? 0 : barsSinceLastLow + 1
+
+if high > max
+    max := high
+    barsSinceLastHigh := 0
+    barsSinceLastHigh
+
+if low < min
+    min := low
+    barsSinceLastLow := 0
+    barsSinceLastLow
+
+lastHigh = rightborder ? max[1] : na
+lastLow = rightborder  ? min[1] : na
+
+plot(show_highlow  ? max : na, color=top_line_c, style=plot.style_stepline,  title='High', linewidth = 1)
+plot(show_highlow  ? min : na, color= top_line_c, style=plot.style_stepline, title='Low',  linewidth = 1)
+
+
+
+
+plot(plot_vW ? vt1w :na, "W",  linewidth=1, color=vwap_color_w, style=Line_st)
+plot(plot_vM ? vt1m :na, "M",  linewidth=1, color=vwap_color_m, style=Line_st)
+plot(plot_vQ and timeframe.isintraday and timeframe.multiplier >= 120 ? vt1q :na, "Q",  linewidth=1, color=vwap_color_q, style=Line_st)
+plot(plot_vY and timeframe.isintraday and timeframe.multiplier >= 120 ? vt1y :na, "Y",  linewidth=1, color=vwap_color_y, style=Line_st)
+plot(plot_vH and timeframe.isintraday and timeframe.multiplier >= 240 ? halving_vwap :na, "Halving Vwap", linewidth=1, color=vwap_color_c, style=Line_st)
+plot(plot_vC ? vt1 :na, "Custom Vwap", linewidth=1, color=vwap_color_c, style=Line_st)
+plot(plot_emasma ? ta.ema(close, ema_len):na,title="EMA", color=emasma_c, linewidth=1, style=Line_st)
+plot(plot_sma ? ta.sma(close, sma_len):na,title="SMA", color=sma_c, linewidth=1, style=Line_st)
+
+labw = Show_labels and plot_vW ? label.new(bar_index+1,vt1w,text="W" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100), textcolor = cell_txtcol):na
+label.delete(labw[1])
+labm = Show_labels and plot_vM ? label.new(bar_index+1,vt1m,text="M" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100), textcolor = cell_txtcol):na
+label.delete(labm[1])
+laby = Show_labels and plot_vQ and timeframe.isintraday and timeframe.multiplier >= 120 ? label.new(bar_index+1,vt1y,text="Q" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100), textcolor = cell_txtcol):na
+label.delete(laby[1])
+labq = Show_labels and plot_vY and timeframe.isintraday and timeframe.multiplier >= 120 ? label.new(bar_index+1,vt1q,text="Y" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100), textcolor = cell_txtcol):na
+label.delete(labq[1])
+labc = Show_labels and plot_vC ? label.new(bar_index+1,vt1,text="CUSTOM" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100),  textcolor = cell_txtcol):na
+label.delete(labc[1])
+labh = Show_labels and plot_vH and timeframe.isintraday and timeframe.multiplier >= 240 ? label.new(bar_index+1,halving_vwap,text="HALVING" ,style=label.style_label_left,size=size.tiny,color=color.new(color.white,100), textcolor = cell_txtcol):na
+label.delete(labh[1])
+
+screener_func(flag) =>
+    out_screener_func = array.new_string(20, string(na))
+    is_monday = dayofweek == dayofweek.monday
+    is_firstdaym = dayofmonth == 1 
+
+
+    float monday_high = 0
+    float monday_low = 0
+    float monday_open = 0
+    float monthly_open = 0
+
+    monday_high := is_monday ? high : monday_high[1]
+    monday_low  := is_monday ? low : monday_low[1]
+    monday_open := is_monday ? open : monday_open[1]
+    monthly_open := is_firstdaym ? open : monthly_open[1]
+
+    // ATH
+    hi  = 0.0
+    ti  = 0
+    hi := bar_index == 0 ? high : high > hi[1] ? high : hi[1]
+    ti := bar_index == 0 ? time : high > hi[1] ? time : ti[1]
+        
+    // Percent down since ATH
+    downATH = hi-1
+        
+    // Days since ATH
+    daysATH = math.round((timenow - ti) / 86400000)
+    weeksATH = math.round(daysATH / 7)
+
+    
+    mid_price_ = math.avg(max,min)
+    six_one_eight    = max  - 0.618 * (max-min)
+    three_eight_two  = max  - 0.382 * (max-min)
+   
+    ecc = ta.ema(close, ema_len)
+    ggg = ta.sma(close, sma_len)
+
+    if flag  
+        h   = close
+        t   = startCalculationDate
+        
+        // Percent away from 
+        from_w_percent        = ((h - vt1w) / vt1w) 
+        from_m_percent        = ((h - vt1m) / vt1m) 
+        from_q_percent        = ((h - vt1q) / vt1q) 
+        from_y_percent        = ((h - vt1y) / vt1y) 
+        from_h_percent        = ((h - halving_vwap) / halving_vwap) 
+        from_c_percent        = ((h - vt1) / vt1) 
+        from_mon_o_percent    = ((h - monday_open) / monday_open) 
+        from_mon_h_percent    = ((h - monday_high) / monday_high) 
+        from_mon_l_percent    = ((h - monday_low) / monday_low) 
+        from_high_percent     = ((h - max) / max) 
+        from_low_percent      = ((h - min) / min) 
+        from_emasma_percent   = ((h - ecc) / ecc) 
+        from_sma_percent      = ((h - ggg) / ggg)
+        from_ath_percent      = ((h - downATH) / downATH)
+        Percentage_mOpen      = ((h - monthly_open) / monthly_open)
+        Percentage_mid        = ((h - mid_price_) / mid_price_)
+        Percentage_six        = ((h - six_one_eight) / six_one_eight)
+        Percentage_three      = ((h - three_eight_two) / three_eight_two)
+
+        [h,vt1w,from_w_percent, from_m_percent,from_q_percent,from_y_percent,from_c_percent , from_ath_percent,from_mon_o_percent,from_mon_h_percent,from_mon_l_percent,from_high_percent,from_low_percent,from_emasma_percent,from_sma_percent,Percentage_mOpen,Percentage_mid,Percentage_six,Percentage_three]
+        
+        array.set(out_screener_func, 0, "$"+ str.tostring(h,dprice))
+        array.set(out_screener_func, 1, (Show_perc ? str.tostring(from_w_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(vt1w,dprice):na))
+        array.set(out_screener_func, 2, (Show_perc ? str.tostring(from_m_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(vt1m,dprice):na))
+        array.set(out_screener_func, 3, (Show_perc ? str.tostring(from_q_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(vt1q,dprice):na))
+        array.set(out_screener_func, 4, (Show_perc ? str.tostring(from_y_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(vt1y,dprice):na))
+        array.set(out_screener_func, 5, (Show_perc ? str.tostring(from_h_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(halving_vwap,dprice):na))
+        array.set(out_screener_func, 6, (Show_perc ? str.tostring(from_c_percent, dperc):na)  + (Show_price_vwap and Show_perc ? " / ":na) + (Show_price_vwap ? "$" + str.tostring(vt1,dprice):na))
+        array.set(out_screener_func, 7, (Show_perc ?str.tostring(from_ath_percent, dperc):na) + (Show_price_ath and Show_perc ? " / ":na) + (Show_price_ath ? "$" + str.tostring(downATH,dprice):na))
+        array.set(out_screener_func, 8, str.tostring(daysATH)+ " DAYS")
+        array.set(out_screener_func, 9, (Show_perc ? str.tostring(from_mon_h_percent, dperc):na) + (Show_price_mday and Show_perc ? " / ":na) +  (Show_price_mday ? "$" + str.tostring(monday_high,dprice):na))
+        array.set(out_screener_func, 10, (Show_perc ?str.tostring(from_mon_l_percent, dperc):na) + (Show_price_mday and Show_perc ? " / ":na) +  (Show_price_mday ? "$" + str.tostring(monday_low,dprice):na))
+        array.set(out_screener_func, 11, (Show_perc ?str.tostring(from_high_percent, dperc):na) + (Show_price_phpl and Show_perc ? " / ":na) +  (Show_price_phpl ? "$" + str.tostring(max,dprice):na))
+        array.set(out_screener_func, 12, (Show_perc ?str.tostring(from_low_percent, dperc):na) + (Show_price_phpl and Show_perc ? " / ":na) +  (Show_price_phpl ? "$" + str.tostring(min,dprice):na))
+        array.set(out_screener_func, 13, (Show_perc ?str.tostring(from_emasma_percent, dperc):na) + (Show_price_ema and Show_perc ? " / ":na) +  (Show_price_ema ? "$" + str.tostring(ecc,dprice):na))
+        array.set(out_screener_func, 14, (Show_perc ?str.tostring(from_sma_percent, dperc):na) + (Show_price_ema and Show_perc ? " / ":na) +  (Show_price_ema ? "$" + str.tostring(ggg,dprice):na))
+        array.set(out_screener_func, 15, (Show_perc ?str.tostring(from_mon_o_percent, dperc):na) + (Show_price and Show_perc ? " / ":na) +  (Show_price ? "$" + str.tostring(monday_open,dprice):na))
+        array.set(out_screener_func, 16, (Show_perc ?str.tostring(Percentage_mOpen, dperc):na) + (Show_price and Show_perc ? " / ":na) +  (Show_price ? "$" + str.tostring(monthly_open,dprice):na))
+        array.set(out_screener_func, 17, (Show_perc ?str.tostring(Percentage_mid, dperc):na) + (Show_price_fib and Show_perc ? " / ":na) +  (Show_price_fib ? "$" + str.tostring(mid_price_,dprice):na))
+        array.set(out_screener_func, 18, (Show_perc ?str.tostring(Percentage_six, dperc):na) + (Show_price_fib and Show_perc ? " / ":na) +  (Show_price_fib ? "$" + str.tostring(six_one_eight,dprice):na))
+        array.set(out_screener_func, 19, (Show_perc ?str.tostring(Percentage_three, dperc):na) + (Show_price_fib and Show_perc ? " / ":na) +  (Show_price_fib ? "$" + str.tostring(three_eight_two,dprice):na))
+    out_screener_func
+
+timeframe = 'D'
+s01_data = request.security(s01, timeframe, screener_func(u01))
+s02_data = request.security(s02, timeframe, screener_func(u02))
+s03_data = request.security(s03, timeframe, screener_func(u03))
+s04_data = request.security(s04, timeframe, screener_func(u04))
+s05_data = request.security(s05, timeframe, screener_func(u05))
+s06_data = request.security(s06, timeframe, screener_func(u06))
+s07_data = request.security(s07, timeframe, screener_func(u07))
+s08_data = request.security(s08, timeframe, screener_func(u08))
+s09_data = request.security(s09, timeframe, screener_func(u09))
+s10_data = request.security(s10, timeframe, screener_func(u10))
+s11_data = request.security(s11, timeframe, screener_func(u11))
+s12_data = request.security(s12, timeframe, screener_func(u12))
+s13_data = request.security(s13, timeframe, screener_func(u13))
+s14_data = request.security(s14, timeframe, screener_func(u14))
+s15_data = request.security(s15, timeframe, screener_func(u15))
+s16_data = request.security(s16, timeframe, screener_func(u16))
+s17_data = request.security(s17, timeframe, screener_func(u17))
+s18_data = request.security(s18, timeframe, screener_func(u18))
+s19_data = request.security(s19, timeframe, screener_func(u19))
+s20_data = request.security(s20, timeframe, screener_func(u20))
+s21_data = request.security(s21, timeframe, screener_func(u21))
+s22_data = request.security(s22, timeframe, screener_func(u22))
+s23_data = request.security(s23, timeframe, screener_func(u23))
+s24_data = request.security(s24, timeframe, screener_func(u24))
+s25_data = request.security(s25, timeframe, screener_func(u25))
+s26_data = request.security(s26, timeframe, screener_func(u26))
+s27_data = request.security(s27, timeframe, screener_func(u27))
+s28_data = request.security(s28, timeframe, screener_func(u28))
+s29_data = request.security(s29, timeframe, screener_func(u29))
+s30_data = request.security(s30, timeframe, screener_func(u30))
+s31_data = request.security(s31, timeframe, screener_func(u31))
+s32_data = request.security(s32, timeframe, screener_func(u32))
+s33_data = request.security(s33, timeframe, screener_func(u32))
+s34_data = request.security(s34, timeframe, screener_func(u34))
+
+
+
+
+var tbl = table.new(table_pos("Top Right"),  21,  38, frame_color = border_c, 
+         frame_width=1, border_width=1, border_color=border_c)
+
+screener_mtx = matrix.new<string>(35,  21, na)
+
+mtx(mtxName, row, symbol, s_data)=>
+    if not na(array.get(s_data, 0))
+        matrix.set(mtxName, row,  0,  symbol)               //Symbol
+        matrix.set(mtxName, row,  1,  array.get(s_data, 0)) //Current Price
+        matrix.set(mtxName, row,  2,  array.get(s_data, 1)) //W Vwap % Away
+        matrix.set(mtxName, row,  3,  array.get(s_data, 2)) //M Vwap % Away
+        matrix.set(mtxName, row,  4,  array.get(s_data, 3)) //Q Vwap % Away
+        matrix.set(mtxName, row,  5,  array.get(s_data, 4)) //Y Vwap % Away
+        matrix.set(mtxName, row,  6, array.get(s_data, 5)) //H Vwap % Away
+        matrix.set(mtxName, row,  7, array.get(s_data, 6)) //C Vwap % Away
+        matrix.set(mtxName, row,  8, array.get(s_data, 7)) //ATH % Away
+        matrix.set(mtxName, row,  9, array.get(s_data, 8)) //ATH days
+        matrix.set(mtxName, row,  10, array.get(s_data, 9)) //Monday high %
+        matrix.set(mtxName, row,  11, array.get(s_data, 10)) //Monday low %
+        matrix.set(mtxName, row,  12, array.get(s_data, 11)) //Pivot High %
+        matrix.set(mtxName, row,  13, array.get(s_data, 12)) //Pivot Low %
+        matrix.set(mtxName, row,  14, array.get(s_data, 13)) //EMA %
+        matrix.set(mtxName, row,  15, array.get(s_data, 14)) //SMA %
+        matrix.set(mtxName, row,  16, array.get(s_data, 15)) //Monday Open %
+        matrix.set(mtxName, row,  17, array.get(s_data, 16)) //Monthly Open %
+        matrix.set(mtxName, row,  18, array.get(s_data, 17)) //Mid %
+        matrix.set(mtxName, row,  19, array.get(s_data, 18)) //618 %
+        matrix.set(mtxName, row,  20, array.get(s_data, 19)) //382 %
+
+if barstate.islast 
+    mtx(screener_mtx, 0,    only_symbol(s01), s01_data)
+    mtx(screener_mtx, 1,    only_symbol(s02), s02_data)
+    mtx(screener_mtx, 2,    only_symbol(s03), s03_data)
+    mtx(screener_mtx, 3,    only_symbol(s04), s04_data)
+    mtx(screener_mtx, 4,    only_symbol(s05), s05_data)
+    mtx(screener_mtx, 5,    only_symbol(s06), s06_data)
+    mtx(screener_mtx, 6,    only_symbol(s07), s07_data)
+    mtx(screener_mtx, 7,    only_symbol(s08), s08_data)
+    mtx(screener_mtx, 8,    only_symbol(s09), s09_data)
+    mtx(screener_mtx, 9,    only_symbol(s10), s10_data)
+    mtx(screener_mtx, 10,   only_symbol(s11), s11_data)
+    mtx(screener_mtx, 11,   only_symbol(s12), s12_data)
+    mtx(screener_mtx, 12,   only_symbol(s13), s13_data)
+    mtx(screener_mtx, 13,   only_symbol(s14), s14_data)
+    mtx(screener_mtx, 14,   only_symbol(s15), s15_data)
+    mtx(screener_mtx, 15,   only_symbol(s16), s16_data)
+    mtx(screener_mtx, 16,   only_symbol(s17), s17_data)
+    mtx(screener_mtx, 17,   only_symbol(s18), s18_data)
+    mtx(screener_mtx, 18,   only_symbol(s19), s19_data)
+    mtx(screener_mtx, 19,   only_symbol(s20), s20_data)
+    mtx(screener_mtx, 20,   only_symbol(s21), s21_data)
+    mtx(screener_mtx, 21,   only_symbol(s22), s22_data)
+    mtx(screener_mtx, 22,   only_symbol(s23), s23_data)
+    mtx(screener_mtx, 23,   only_symbol(s24), s24_data)
+    mtx(screener_mtx, 24,   only_symbol(s25), s25_data)
+    mtx(screener_mtx, 25,   only_symbol(s26), s26_data)
+    mtx(screener_mtx, 26,   only_symbol(s27), s27_data)
+    mtx(screener_mtx, 27,   only_symbol(s28), s28_data)
+    mtx(screener_mtx, 28,   only_symbol(s29), s29_data)    
+    mtx(screener_mtx, 29,   only_symbol(s30), s30_data)
+    mtx(screener_mtx, 30,   only_symbol(s31), s31_data)
+    mtx(screener_mtx, 31,   only_symbol(s32), s32_data)
+    mtx(screener_mtx, 32,   only_symbol(s33), s33_data)
+    mtx(screener_mtx, 33,   only_symbol(s34), s34_data)
+
+ 
+
+
+    if table_sort_by != "None"
+        matrix.sort(screener_mtx, table_sort_by == "Symbol" ? 0 : table_sort_by == "W Vwap %" ? 2 : table_sort_by == "M Vwap %" ? 3 : table_sort_by == "Q Vwap %" ? 4 : table_sort_by == "Y Vwap %" ? 5 : table_sort_by == "H Vwap %" ? 6 : table_sort_by == "C Vwap %" ? 7 :table_sort_by == "ATH %" ? 8 : table_sort_by == "Monday Open %" ? 10 :table_sort_by == "Monday High %" ? 11 :table_sort_by == "Monday Low %" ? 12 :table_sort_by == "Pivot H %" ? 13 :table_sort_by == "Pivot L %" ? 14  : 0, table_sort_dir == "Ascending" ?  order.ascending : order.descending)
+
+    q= 0 
+    while q <= matrix.rows(screener_mtx) - 1 and matrix.rows(screener_mtx) > 1
+        if na(matrix.get(screener_mtx, q, 0))
+            matrix.remove_row(screener_mtx, q)
+            q := q
+        else 
+            q := q + 1
+    
+if Show_table and timeframe.isintraday and timeframe.multiplier >= 60
+    table.cell(tbl,  0, 0, 'THRESHOLD: '+ str.tostring(Hiding_Price_range)+"%",     bgcolor   = neg_bgcol, 
+                 text_color = vwap_color_i, text_size = table_size(in_table_size),text_halign=text.align_left)
+
+    table.cell(tbl, 1, 0, 'PRICE',      bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_left)
+
+
+
+    table.cell(tbl,  2, 0, 'WEEKLY VWAP',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+
+
+    table.cell(tbl,  3, 0, 'MONTHLY VWAP'  ,     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+
+
+    table.cell(tbl,  4, 0, 'QUARTERLY VWAP'  ,     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)                                    
+
+ 
+
+    table.cell(tbl,  5, 0, 'YEARLY VWAP',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+ 
+
+    table.cell(tbl,  6, 0, 'HALVING VWAP',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)            
+
+ 
+
+    table.cell(tbl,  7, 0, 'CUSTOM VWAP',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  8, 0, 'TO ATH',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)  
+                               
+    table.cell(tbl,  9, 0, 'SINCE ATH',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+
+    table.cell(tbl,  10, 0, 'MONDAY H',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  11, 0, 'MONDAY L',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  12, 0, 'PIVOT H',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  13, 0, 'PIVOT L',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)         
+
+    table.cell(tbl,  14, 0, str.tostring(ema_len)+ "D EMA ",     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)          
+
+    table.cell(tbl,  15, 0, str.tostring(sma_len)+ "D "+"SMA",     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)          
+
+
+    table.cell(tbl,  16, 0, 'WEEKLY OPEN',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  17, 0, 'MONTHLY OPEN',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  18, 0, '0.500',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  19, 0, '0.382/0.618',     bgcolor   = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+    table.cell(tbl,  20, 0, '0.618/0.382',     bgcolor   = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size),text_halign=text.align_center)
+
+
+
+    max_row = 1
+    for i = 0 to matrix.rows(screener_mtx) - 1
+    
+        if not na(matrix.get(screener_mtx, i, 1)) 
+
+            // Symbol 
+            table.cell(tbl, 0, i + 2, matrix.get(screener_mtx, i, 0), 
+                 text_halign = text.align_left, bgcolor = neg_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size))
+            // Current Price
+            table.cell(tbl,  1, i + 2, matrix.get(screener_mtx, i,1), 
+                 text_halign = text.align_left, bgcolor = pos_bgcol, 
+                 text_color = cell_txtcolw, text_size = table_size(in_table_size))            
+
+            // W Vwap % Away
+            down_value = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 2), "%"))
+            down_col = down_value < -Hiding_Price_range ? cell_txtcol : down_value > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 2, i + 2, matrix.get(screener_mtx, i, 2),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col, text_size = table_size(in_table_size))     
+
+            // M Vwap % Away
+            down_value1 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 3), "%"))
+            down_col1 = down_value1 < -Hiding_Price_range ? cell_txtcol : down_value1 > Hiding_Price_range ? cell_txtcol: vwap_color_i
+            table.cell(tbl, 3, i + 2, matrix.get(screener_mtx, i, 3),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col1, text_size = table_size(in_table_size)) 
+   
+            // Q Vwap % Away
+            down_value2 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 4), "%"))
+            down_col2 = down_value2 < -Hiding_Price_range ? cell_txtcol : down_value2 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 4, i + 2, matrix.get(screener_mtx, i, 4),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col2, text_size = table_size(in_table_size))          
+         
+ 
+            // Y Vwap % Away
+            down_value3 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 5), "%"))
+            down_col3 = down_value3 < -Hiding_Price_range ? cell_txtcol : down_value3 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 5, i + 2, matrix.get(screener_mtx, i, 5),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col3, text_size = table_size(in_table_size)) 
+
+            // H Vwap % Away
+            down_value4 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 6), "%"))
+            down_col4 = down_value4 < -Hiding_Price_range ? cell_txtcol : down_value4 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 6, i + 2, matrix.get(screener_mtx, i, 6),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col4, text_size = table_size(in_table_size))                                      
+
+            // C Vwap % Away
+            down_value5 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 7), "%"))
+            down_col5 = down_value5 < -Hiding_Price_range ? cell_txtcol : down_value5 > Hiding_Price_range ? cell_txtcol  : vwap_color_i 
+            table.cell(tbl, 7, i + 2, matrix.get(screener_mtx, i, 7),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col5, text_size = table_size(in_table_size)) 
+
+            // ATH % Away
+            down_value6 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 8), "%"))
+            down_col6 = down_value6 < -Hiding_Price_range ? cell_txtcol : down_value6 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 8, i + 2, matrix.get(screener_mtx, i, 8),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col6, text_size = table_size(in_table_size))
+
+            // ATH days
+            table.cell(tbl, 9, i + 2, matrix.get(screener_mtx, i, 9),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = cell_txtcol, text_size = table_size(in_table_size))
+
+
+            // MON HIGH % Away
+            down_value8 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 10), "%"))
+            down_col8 = down_value8 < -Hiding_Price_range ? cell_txtcol : down_value8 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 10, i + 2, matrix.get(screener_mtx, i, 10),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col8, text_size = table_size(in_table_size)) 
+
+            // MON LOW % Away  
+            down_value9 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 11), "%"))
+            down_col9 = down_value9 < -Hiding_Price_range ? cell_txtcol : down_value9 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 11, i + 2, matrix.get(screener_mtx, i, 11),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col9, text_size = table_size(in_table_size))      
+
+            // PIVOT HIGH % Away  
+            down_value10 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 12), "%"))
+            down_col10 = down_value10 < -Hiding_Price_range ? cell_txtcol : down_value10 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 12, i + 2, matrix.get(screener_mtx, i, 12),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col10, text_size = table_size(in_table_size))  
+
+            // PIVOT LOW % Away  
+            down_value11 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 13), "%"))
+            down_col11 = down_value11 < -Hiding_Price_range ? cell_txtcol : down_value11 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 13, i + 2, matrix.get(screener_mtx, i, 13),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col11, text_size = table_size(in_table_size)) 
+            // EMA   
+            down_value12 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 14), "%"))
+            down_col12 = down_value12 < -Hiding_Price_range ? cell_txtcol : down_value12 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 14, i + 2, matrix.get(screener_mtx, i, 14),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col12, text_size = table_size(in_table_size)) 
+
+            //SMA  
+            down_value13 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 15), "%"))
+            down_col13 = down_value13 < -Hiding_Price_range ? cell_txtcol : down_value13 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 15, i + 2, matrix.get(screener_mtx, i, 15),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col13, text_size = table_size(in_table_size))      
+
+            // MON OPEN % Away 
+            down_value7 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 16), "%"))
+            down_col7 = down_value7 < -Hiding_Price_range ? cell_txtcol : down_value7 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 16, i + 2, matrix.get(screener_mtx, i, 16),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col7, text_size = table_size(in_table_size)) 
+
+            //M OPEN  
+            down_value14 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 17), "%"))
+            down_col14 = down_value14 < -Hiding_Price_range ? cell_txtcol : down_value14 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 17, i + 2, matrix.get(screener_mtx, i, 17),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col14, text_size = table_size(in_table_size)) 
+
+            //MID  
+            down_value15 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 18), "%"))
+            down_col15 = down_value15 < -Hiding_Price_range ? cell_txtcol : down_value15 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 18, i + 2, matrix.get(screener_mtx, i, 18),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col15, text_size = table_size(in_table_size))         
+
+
+            //382  
+            down_value16 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 19), "%"))
+            down_col16 = down_value16 < -Hiding_Price_range ? cell_txtcol : down_value16 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 19, i + 2, matrix.get(screener_mtx, i, 19),
+                 text_halign = text.align_center, bgcolor = pos_bgcol, 
+                 text_color = down_col16, text_size = table_size(in_table_size))           
+            
+
+            //618  
+            down_value17 = str.tonumber(f_strLeftOf(matrix.get(screener_mtx, i, 20), "%"))
+            down_col17 = down_value17 < -Hiding_Price_range ? cell_txtcol : down_value17 > Hiding_Price_range ? cell_txtcol  : vwap_color_i
+            table.cell(tbl, 20, i + 2, matrix.get(screener_mtx, i, 20),
+                 text_halign = text.align_center, bgcolor = neg_bgcol, 
+                 text_color = down_col17, text_size = table_size(in_table_size))           
+            max_row := max_row + 1

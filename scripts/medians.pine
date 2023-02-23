@@ -1,0 +1,45 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=5
+indicator('MIDPOINT', overlay=true)
+
+
+inp_text_size       = input.string("Tiny", options = ["Tiny", "Small"], title = "Table Text Size", group = "Element On/Off")
+TextSize            = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : na
+
+color_01 =input.color(color.rgb(255, 255, 255, 40),"1st input color")
+color_02 =input.color(color.rgb(253, 253, 253, 38),"1st input color")
+color_03 =input.color(color.rgb(250, 249, 249, 38),"1st input color")
+color_04 =input.color(color.rgb(181, 235, 252, 92),"1st input color")
+
+BPeriod = input(4000, 'BPeriod 01')
+midpoint1 = ta.highest(high, BPeriod) + ta.lowest(low, BPeriod)
+midpoint2 = midpoint1 / 2
+
+
+APeriod = input(3000, 'BPeriod 2')
+midpoint3 = ta.highest(high, APeriod) + ta.lowest(low, APeriod)
+midpoint4 = midpoint3 / 2
+
+
+CPeriod = input(2000, 'BPeriod 3')
+midpoint5 = ta.highest(high, CPeriod) + ta.lowest(low, CPeriod)
+midpoint6 = midpoint5 / 2
+
+plot(midpoint2, linewidth=1, color=color_01,style= plot.style_stepline)
+plot(midpoint4, linewidth=1, color=color_02,style= plot.style_stepline)
+plot(midpoint6, linewidth=1, color=color_03,style= plot.style_stepline)
+
+same = midpoint2 == midpoint4 or midpoint2 == midpoint6 ? na : color_04 
+same2 =  midpoint4 == midpoint6 ? na : color_04 
+
+plot(midpoint2, linewidth=12, color=same,style= plot.style_stepline)
+plot(midpoint4, linewidth=12, color=same2,style= plot.style_stepline)
+plot(midpoint6, linewidth=12, color=color_04,style= plot.style_stepline)
+
+label01 = label.new(bar_index, midpoint2, text=str.tostring(midpoint2),  color=color.rgb(76, 175, 79, 100), textcolor=color_01, size=TextSize,style=label.style_label_left)
+label.delete(label01[1])
+label02 = label.new(bar_index, midpoint4, text=str.tostring(midpoint4),  color=color.rgb(76, 175, 79, 100), textcolor=color_02, size=TextSize,style=label.style_label_left)
+label.delete(label02[1])
+label03 = label.new(bar_index, midpoint6, text=str.tostring(midpoint6),  color=color.rgb(76, 175, 79, 100), textcolor=color_03, size=TextSize,style=label.style_label_left)
+label.delete(label03[1])

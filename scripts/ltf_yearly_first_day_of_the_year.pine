@@ -1,0 +1,122 @@
+//Jo-Pippin 
+//@version=5
+indicator(title='Yearly LTF', shorttitle='Yearly LTF', overlay=true , max_bars_back = 500)
+
+inp_text_size                = input.string("Tiny", options = ["Tiny", "Small"], title = "Text Size", group = "Table Settings")
+TextSize                     = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : na
+yearly_dots_col              = input.color(color.new(#404867, 0),   'Open Dots color', group = "Color Settings")
+tx_col                       = input.color(color.new(#404867, 0),   'TX col', group = "Color Settings")
+lab_bg                       = input.color(color.new(#f9fafc, 0),   'FD Label BG color', group = "Color Settings")
+yearly_line                  = input.color(color.new(#404867, 0),   'Open line color', group = "Color Settings")
+yearly_opening_range_col     = input.color(color.new(#0e0d0d, 100),  'All First Day of Year Opening Range color', group = "Color Settings")
+yearly_opening_range_coll    = input.color(color.new(#404867, 97),  'Latest First Day of Year Opening Range color', group = "Color Settings")
+line_col                     = input.color(color.new(#111111, 100),  'Latest yearly first day H L line color', group = "Color Settings")
+zone                         = input.color(color.new(#404867, 97),  'Zone between (yOpen+close)/2 and (yLow+close)/2 ', group = "Color Settings")
+
+pos                          = input.int(20, title="First day HL label pos", minval=1,group='Elements')
+pos_y_eq                     = input.int(3, title="yOpen and EQ label pos", minval=1,group='Elements')
+
+[yo,yc1]                     = request.security(syminfo.tickerid, '12M', expression=[open, close[1]], lookahead=barmerge.lookahead_on)
+new_day                      = yc1[1]  != yc1
+
+plotchar(new_day ? yo : na, title='Close', char='●', location=location.absolute, color=yearly_dots_col, offset=0, size=size.small)
+
+//Session Rules
+bartimeSess    = time('12M')
+newbarSess     = bartimeSess != bartimeSess[1]
+year_bars_back = ta.barssince(ta.change(time("12M")))
+high_range     = ta.valuewhen(newbarSess, high, 0)
+low_range      = ta.valuewhen(newbarSess, low, 0)
+d1 = dayofmonth == 1
+
+//Calcul For Opening Range
+locHigh = request.security(syminfo.tickerid, 'D', high_range)
+locLow  = request.security(syminfo.tickerid, 'D', low_range)
+range_1 = locHigh - locLow
+
+plot1 = plot(time(timeframe.period) > 0 ? locHigh : na, title='IB High', color=color.new(#40596d, 100), linewidth=2)
+plot2 = plot(time(timeframe.period) > 0 ? locLow  : na, title='IB Low',  color=color.new(#2195f3, 100), linewidth=2)
+
+Mon_lines              = input.color(color.new(#afcff7, 64), 'First Day of Month outline Color', group = "Color Settings")
+[do_,dc1,dl,dh,dc]     = request.security(syminfo.tickerid, 'D', expression=[open, close[1],low,high,close], lookahead=barmerge.lookahead_on)
+
+transparent = color.new(color.orange, 100)
+
+var datePrev = 0
+var H = 0.0
+var L = 0.0
+
+date = time('D')
+newDay1 = date != datePrev
+datePrev := date
+
+bcolor = d1 ? Mon_lines : transparent
+
+H := newDay1 or high > H ? high[0] : H
+L := newDay1 or low  < L ? low[0]  : L
+
+is_firstday = d1
+
+float firstday_high = 0
+float firstday_low  = 0
+
+firstday_high := is_firstday ? dh : firstday_high[1]
+firstday_high_bar_index = ta.barssince(firstday_high)
+firstday_low  := is_firstday ? dl : firstday_low[1]
+
+seek_first_day       = dayofmonth == 1 and hour == 00 and minute == 00
+first_day_bar_index  = ta.barssince(seek_first_day)
+seek_second_day      = dayofmonth == 2 and hour == 00 and minute == 00 
+second_day_bar_index = ta.barssince(seek_second_day)
+
+fill(plot1, plot2, yearly_opening_range_col)
+
+show_bottom_or_top_line  = close[1] < locLow  ? true :false
+show_bottom_or_top_line2 = close[1] > locHigh ? true :false
+
+first_day_of_year_high_line = line.new(bar_index[year_bars_back],locHigh,bar_index,locHigh,extend=extend.right,width=1,color=line_col)
+line.delete(first_day_of_year_high_line[1])
+
+first_day_of_year_low_line =  line.new(bar_index[year_bars_back],locLow,bar_index,locLow,extend=extend.right,width=1,color=line_col)
+line.delete(first_day_of_year_low_line[1])
+
+line1 = line.new(bar_index[second_day_bar_index+1],locHigh,bar_index,locHigh,extend=extend.right,width=1,color=transparent)
+line.delete(line1[1])
+line2 = line.new(bar_index[second_day_bar_index+1],locLow,bar_index,locLow,extend=extend.right,width=1,color=transparent)
+line.delete(line2[1])
+
+linefill3 = linefill.new(line1, line2, color = yearly_opening_range_coll)
+
+condition = ta.cross(close, locLow) or ta.cross(close, locHigh)
+alertcondition(condition, title='Price crossed over the H or L of the first yearly day', message='Price crossed over the H or L of the first yearly day')
+
+line_yo = line.new(bar_index[year_bars_back],yo,bar_index+pos_y_eq ,yo,width=1,color=yearly_line)
+line.delete(line_yo[1])
+
+Percent = ((close - yo) / (yo)) *100
+
+yol=label.new(bar_index+pos_y_eq ,yo,text="yOpen $" + str.tostring(yo) + '   |   ' + '% away from yOpen ' + str.tostring(Percent, format.mintick) +'', size=TextSize,color=transparent,textcolor = tx_col, style =label.style_label_left )
+label.delete(yol[1])
+
+fdh=label.new(bar_index+pos,locHigh,text="FDH $" + str.tostring(locHigh), size=TextSize,color=lab_bg,textcolor = tx_col, style =label.style_label_left )
+label.delete(fdh[1])
+fdl=label.new(bar_index+pos,locLow,text="FDL $" + str.tostring(locLow), size=TextSize,color=lab_bg,textcolor = tx_col, style =label.style_label_left )
+label.delete(fdl[1])
+
+eq_calc = close > locLow ? locLow : close < locHigh ? locHigh :na
+eq=label.new(bar_index+pos_y_eq ,(eq_calc+close)/2,text="EQ $" + str.tostring((eq_calc+close)/2), size=TextSize,color=transparent,textcolor = tx_col, style =label.style_label_left )
+label.delete(eq[1])
+
+line_yoq = line.new(bar_index,(eq_calc+close)/2,bar_index+pos_y_eq ,(eq_calc+close)/2,width=1,color=yearly_line)
+line.delete(line_yoq[1])
+
+line_yoq2 = line.new(bar_index,(yo+close)/2,bar_index+pos_y_eq ,(yo+close)/2,width=1,color=transparent)
+line.delete(line_yoq2[1])
+
+linefill.new(line_yoq, line_yoq2, zone)
+
+
+pH = plot(dayofmonth == 1 ? H:na, title='High', style=plot.style_stepline, linewidth=1, color=transparent)
+pL = plot(dayofmonth == 1 ? L:na, title='Low' , style=plot.style_stepline, linewidth=1, color=transparent)
+
+fill(pH, pL, yearly_opening_range_coll)

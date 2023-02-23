@@ -1,0 +1,95 @@
+//Jo
+//@version=5
+indicator(title='INFO', overlay=true)
+
+//symbol info
+c_bg             = input.color(color.new(#f6f6f8, 0), 'Background Color', group='global settings')
+c_symInfo        = input.color(color.new(#0a0a0a, 0), 'Text Color', group='global settings')
+
+
+log              = input.bool(title='Show Log Scale next to Ticker info', defval=false, group='global settings')
+lin              = input.bool(title='Show Linear Scale next to Ticker info', defval=false, group='global settings')
+
+lo_show          = input.bool(title='Show Log Scale  top right ', defval=false, group='global settings')
+li_show          = input.bool(title='Show Linear Scale top right', defval=false, group='global settings')
+symInfoCheck     = input.bool(title='Show Symbol Info', defval=true, group='symbol settings')
+date             = str.tostring(dayofmonth(time_close)) + '/' + str.tostring(month(time_close)) + '/' + str.tostring(year(time_close))
+symInfo          = date + ' | ' + syminfo.prefix + ' | ' + syminfo.ticker + ' | ' + timeframe.period + (timeframe.isminutes ? 'M' : na)
+symVPosition     = input.string('bottom', 'Vertical Position', options=['top', 'middle', 'bottom'], group='symbol settings')
+symHPosition     = input.string('center', 'Horizontal Position', options=['left', 'center', 'right'], group='symbol settings')
+s_symInfo        = input.string('small', 'Text Size', options=['tiny', 'small', 'normal', 'large', 'huge', 'auto'], group='symbol settings')
+width            = input.int(16, "Width Symbol Text", minval = 0, maxval = 100, group='symbol settings')
+height           = input.int(0, "Height Symbol Text", minval = 0, maxval = 100, group='symbol settings')
+
+layout_Check     = input.bool(title='Show Layout Text', defval=true, group = "layout Text")
+textInput1       = input.string('CUSTOM TEXT',     "Layout Text", group = "layout Text")
+infoBoxSizeInput = input.string("small",  "Layout Text Size", options = ["tiny", "small", "normal", "large", "huge", "auto"], group = "layout Text")
+infoBoxYPosInput = input.string("top", "Layout vert Pos", options = ["top", "middle", "bottom"], group = "layout Text")
+infoBoxXPosInput = input.string("right",   "Layout horiz Pos", options = ["left", "center", "right"], group = "layout Text")
+widthInput       = input.int(5, "Width Layout Text", minval = 0, maxval = 100, group = "layout Text")
+heightInput      = input.int(2, "Height Layout Text", minval = 0, maxval = 100, group = "layout Text")
+
+fib_warn_Check    = input.bool(title='Show Fib Warningt Text', defval=true, group = "Fib Warning Text")
+infoBoxYPosInput2 = input.string("top", "Fib Warn vert Pos", options = ["top", "middle", "bottom"], group = "Fib Warning Text")
+infoBoxXPosInput2 = input.string("center",   "Fib Warn horiz Pos", options = ["left", "center", "right"], group = "Fib Warning Text")
+
+[ATH_,LOW_]     = request.security(syminfo.tickerid, '12M', expression=[high[2],low[1]], lookahead=barmerge.lookahead_on)
+
+
+// Percent_ath_low = (close - LOW_) / (ATH_ - LOW_)
+
+Percent_ath_low_lo = log ? str.tostring((math.log(close)  - math.log(LOW_)) / (math.log(ATH_) - math.log(LOW_)), '#.###') :''
+
+Percent_ath_low_li = lin ? "| " + str.tostring((close - LOW_) / (ATH_ - LOW_), '#.###'):''
+
+
+
+
+
+Percent_ath_low_log =  (math.log(close)  - math.log(LOW_)) / (math.log(ATH_) - math.log(LOW_)) 
+Percent_ath_low = (close - LOW_) / (ATH_ - LOW_)
+
+percentage_range(value, minimum, maximum) =>
+    math.min(math.max(value, minimum), maximum)
+
+range_value_236 = percentage_range(Percent_ath_low, 0.235, 0.237)
+range_value_382 = percentage_range(Percent_ath_low, 0.381, 0.383)
+range_value_500 = percentage_range(Percent_ath_low, 0.499, 0.501)
+range_value_618 = percentage_range(Percent_ath_low, 0.617, 0.670)
+range_value_786 = percentage_range(Percent_ath_low, 0.785, 0.787)
+
+range_236       =  range_value_236 == Percent_ath_low ? "0.236 FIB" : range_value_382 == Percent_ath_low ? "0.382 FIB" : range_value_500 == Percent_ath_low ? "0.500 FIB" : range_value_618 == Percent_ath_low ? "GOLDEN POCKET FIB" :range_value_786 == Percent_ath_low ? "786 FIB" : na
+range_bg        =  range_value_236 == Percent_ath_low ? c_bg : range_value_382 == Percent_ath_low ? c_bg : range_value_500 == Percent_ath_low ? c_bg : range_value_618 == Percent_ath_low ? c_bg :range_value_786 == Percent_ath_low ? color.new(color.black,100) : na
+add_tx          =  range_value_236 == Percent_ath_low ? " FIB" : range_value_382 == Percent_ath_low ? " FIB" : range_value_500 == Percent_ath_low ? " FIB" : range_value_618 == Percent_ath_low ? " GP" :range_value_786 == Percent_ath_low ? " FIB" : na
+
+
+
+dayofweek_text_function(t) =>
+    switch dayofweek(t, "America/New_York")
+        1 => "SUNDAY"
+        2 => "MONDAY"
+        3 => "TUESDAY"
+        4 => "WEDNESDAY"
+        5 => "THURSDAY"
+        6 => "FRIDAY"
+        7 => "SATURDAY"
+        
+symWatermark = table.new(symVPosition + '_' + symHPosition, 5, 5)
+if symInfoCheck == true
+    table.cell(symWatermark, 0, 1, symInfo + ' | ' + str.tostring(dayofweek_text_function(time)) + ' | ' + Percent_ath_low_lo +  Percent_ath_low_li, width, height, c_symInfo, text_size=s_symInfo, bgcolor=c_bg)
+
+var table watermark = table.new(infoBoxYPosInput + "_" + infoBoxXPosInput, 1, 3)
+
+if barstate.islast and layout_Check
+    table.cell(watermark, 0, 0, textInput1, widthInput, heightInput, c_symInfo, text_size = infoBoxSizeInput, bgcolor = c_bg, text_halign =  text.align_left)
+
+if barstate.islast and li_show    
+    table.cell(watermark, 0, 1, str.tostring(Percent_ath_low, '#.###') + " LINEAR", widthInput, heightInput, c_symInfo, text_size = infoBoxSizeInput, bgcolor = c_bg, text_halign =  text.align_left)
+
+if barstate.islast and lo_show 
+    table.cell(watermark, 0, 2, str.tostring(Percent_ath_low_log, '#.###') + " LOG", widthInput, heightInput, c_symInfo, text_size = infoBoxSizeInput, bgcolor = c_bg, text_halign =  text.align_left)
+
+var table fib_warn = table.new(infoBoxYPosInput2 + "_" + infoBoxXPosInput2, 1, 1)
+
+if barstate.islast and fib_warn_Check
+    table.cell(fib_warn, 0, 0, range_236, 13, 2, c_symInfo, text_size = infoBoxSizeInput, bgcolor = range_bg)

@@ -1,0 +1,202 @@
+//Jo
+//@version=5
+indicator('Monthly Framing', overlay=true, max_bars_back = 5000)
+
+inp_text_size          = input.string("Tiny", options = ["Tiny", "Small","Normal"], title = "Text Sizs", group = "String inputs")
+TextSize               = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : inp_text_size == "Normal" ? size.normal : na
+
+inp_line_style_poc     = input.string("Dashed", options = ["Dotted", "Solid", "Dashed"], title = "Poc Line Style", group = "String inputs")
+Line_st_poc            = inp_line_style_poc == "Solid" ? line.style_solid : inp_line_style_poc == "Dotted" ? line.style_dotted : inp_line_style_poc == "Dashed" ? line.style_dashed : na
+
+inp_line_style_piv     = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Pivot Line Style", group = "String inputs")
+Line_st_piv            = inp_line_style_piv == "Solid" ? line.style_solid : inp_line_style_piv == "Dotted" ? line.style_dotted : inp_line_style_piv == "Dashed" ? line.style_dashed : na
+
+show_first_day_OL      = input.bool(true, 'Show first day of month outline', group = "Bool inputs")
+show_day_label         = input.bool(true, 'Show first day of month label', group = "Bool inputs")
+show_first_d_HL        = input.bool(true, 'Extend First day of month HL lines', group = "Bool inputs")
+show_labels_dayHL      = input.bool(true, 'Show First day of month HL labels', group = "Bool inputs")
+show_opening_range     = input.bool(true, 'Show Opening Range', group = "Bool inputs")
+show_or_labels         = input.bool(true, 'Show Monthly Open label', group = "Bool inputs")
+show_pivot_lines       = input.bool(true, 'Show Pivot Lines', group = "Bool inputs")
+show_pivot_labels      = input.bool(true, 'Show Pivot Labels', group = "Bool inputs")
+show_vol_candle        = input.bool(true, 'Show Max Vol candle measured from the start of this Month', group = "Bool inputs")
+show_mpoc              = input.bool(true, 'Show LTF POC of Max volume bar', group = "Bool inputs")
+show_mpoc_label        = input.bool(true, 'Show LTF POC Label', group = "Bool inputs")
+i_open                 = input.bool(true, 'Plot Monthly Open Dots', group = "Bool inputs")
+i_open_w               = input.bool(true, 'Plot Weekly Open Dots', group = "Bool inputs")
+
+
+
+wick_width             = input.int (1,    'Volume Wick width on existing candles', minval=1, maxval=30, group = "Integer inputs")
+body_width             = input.int (3,    'Volume Body width on existing candles', minval=1, maxval=30, group = "Integer inputs")
+label_shift            = input.int (5,  'Shift Labels right/left',       minval=1, maxval=30000,        group = "Integer inputs")
+
+pivot_line_c           = input.color(color.new(#afcff7, 64), 'Pivot line color', group = "Color Settings")
+First_d_line_c         = input.color(color.new(#afcff7, 64), 'First Day of the Month HL line color', group = "Color Settings")
+day_label_col          = input.color(color.new(#ffffff, 20), 'Day Label Color', group = "Color Settings")
+Mon_lines              = input.color(color.new(#afcff7, 64), 'First Day of Month outline Color', group = "Color Settings")
+Opening_R              = input.color(color.new(#434651, 60), 'Monthly Opening Range color', group = "Color Settings")
+candle_c               = input.color(color.new(#ecf5ff, 0),  'Largest Volume Candle Color', group = "Color Settings")
+mainpoc_c              = input.color(color.new(#bec2cc, 15) ,'Main Poc Color', group = "Color Settings")
+wo_c                   = input.color(color.new(#bec2cc, 15) ,'Weekly Open Color', group = "Color Settings")
+
+[do_,dc1,dl,dh,dc]     = request.security(syminfo.tickerid, 'D', expression=[open, close[1],low,high,close], lookahead=barmerge.lookahead_on)
+[mo,mc1,ml,mh,mc]      = request.security(syminfo.tickerid, "M", expression=[open, close[1],low,high,close], lookahead=barmerge.lookahead_on)
+[wo,wc1,wl,wh,wc]      = request.security(syminfo.tickerid, 'W', expression=[open, close[1],low,high,close], lookahead=barmerge.lookahead_on)
+new_day                = wc1[1]  != wc1
+new_day_m              = mc1[1]  != mc1
+
+d1 = dayofmonth == 1 
+month_bars_back = ta.barssince(ta.change(time("M")))
+
+ph_ = ta.pivothigh(high,month_bars_back,0 )
+ph  = ta.barssince(ph_)
+pl_ = ta.pivotlow(low,month_bars_back,0 )
+pl  = ta.barssince(pl_)
+
+//Show on
+dont_show_on_ltfs = timeframe.period == '1' ? false : 
+ timeframe.period == '2'  ? false : 
+ timeframe.period == '3'  ? false : 
+ timeframe.period == '4'  ? false : 
+ timeframe.period == '5'  ? false : 
+ timeframe.period == '6'  ? false : 
+ timeframe.period == '7'  ? false : 
+ timeframe.period == '8'  ? false : 
+ timeframe.period == '9'  ? false : 
+ timeframe.period == '10' ? false :
+ timeframe.period == '11' ? false : 
+ timeframe.period == '12' ? false : 
+ timeframe.period == '13' ? false :
+ timeframe.period == '14' ? false : 
+ 
+ true
+
+//Day Switch
+f_get_day() =>
+    switch dayofweek
+        1 => "Sunday"
+        2 => "Monday"
+        3 => "Tuesday"
+        4 => "Wednesday"
+        5 => "Thursday"
+        6 => "Friday"
+        7 => "Saturday"
+
+//Monday Outlines
+transparent = color.new(color.orange, 100)
+
+var datePrev = 0
+var H = 0.0
+var L = 0.0
+
+date = time('D')
+newDay1 = date != datePrev
+datePrev := date
+
+bcolor = d1 ? Mon_lines : transparent
+
+H := newDay1 or high > H ? high[0] : H
+L := newDay1 or low  < L ? low[0]  : L
+
+is_firstday = d1
+
+float firstday_high = 0
+float firstday_low  = 0
+
+firstday_high := is_firstday ? dh : firstday_high[1]
+firstday_high_bar_index = ta.barssince(firstday_high)
+firstday_low  := is_firstday ? dl : firstday_low[1]
+
+seek_first_day       = dayofmonth == 1 and hour == 00 and minute == 00
+first_day_bar_index  = ta.barssince(seek_first_day)
+seek_second_day      = dayofmonth == 2 and hour == 00 and minute == 00 
+second_day_bar_index = ta.barssince(seek_second_day)
+
+midpoint_current_bar_and_first_day        = ((first_day_bar_index - second_day_bar_index) /2) + second_day_bar_index
+only_show_hl_lines_ifday1islargerthanday2 = second_day_bar_index  < first_day_bar_index ? true :false
+day_display_y_pos = second_day_bar_index  < first_day_bar_index   ? midpoint_current_bar_and_first_day : first_day_bar_index
+day_low_lab = second_day_bar_index        < first_day_bar_index   ? firstday_low : dl
+
+//HTF Vol Candle Search
+arr = array.new_float(0)
+for i = 1 to month_bars_back by 1
+
+	array.push(arr,volume[i])
+
+first_Highest = array.max(arr, 0)
+first_Highest_index = array.lastindexof(arr, first_Highest)
+
+//ltf Poc
+currentTimeframe = timeframe.in_seconds(timeframe.period) / 60
+dynTf = currentTimeframe <= 30 ? "1" : currentTimeframe > 30 and currentTimeframe <= 180 ? "5" :
+ currentTimeframe > 180  and currentTimeframe <= 480  ? "15" : currentTimeframe  > 480 and currentTimeframe <= 1440 ? "60" :
+ currentTimeframe > 1440 and currentTimeframe <= 4320 ? "120" : currentTimeframe > 4320 ? "240" : na
+
+ltfStats() =>
+
+    vol = na(volume) == false ? volume : 0
+
+    [close, vol]
+
+[ltfSrc, ltfVolume]
+ = request.security_lower_tf(syminfo.tickerid, dynTf, ltfStats())
+
+maxVolume = array.max(ltfVolume,0)
+indexOfMaxVolume = array.indexof(ltfVolume, maxVolume)
+maxVol = array.size(ltfSrc) > 0 ? array.get(ltfSrc, indexOfMaxVolume) : na
+
+/// Weekly Dots
+plotchar(new_day    and i_open_w  ? wo : na, title='Close', char='⋅', location=location.absolute, color=wo_c, offset=0,  size=size.tiny)
+plotchar(new_day    and i_open_w  ? wo : na, title='Close', char='ʷ', location=location.abovebar, color=wo_c, offset=0, size=size.tiny)
+plotchar(new_day_m  and i_open  ? mo : na, title='Close', char='⋅', location=location.absolute, color=wo_c, offset=0,  size=size.tiny)
+plotchar(new_day_m  and i_open  ? mo : na, title='Close', char='ᵐ', location=location.abovebar, color=wo_c, offset=0, size=size.tiny)
+
+//Monthly IB 
+Monthly_IB_box         = show_opening_range ? box.new(bar_index[first_day_bar_index],high[first_day_bar_index],bar_index,low[first_day_bar_index], bgcolor=Opening_R,border_color=   color.new(color.blue,100)):na
+box.delete(Monthly_IB_box[1])
+monthly_open_label     = show_or_labels ? label.new(bar_index+label_shift, mo, text= "Monthly Open  |  " +  str.tostring(mo), style=label.style_label_left,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize):na
+label.delete(monthly_open_label[1])
+
+//First Day lines surounded
+pH = plot(show_first_day_OL ? H:na, title='High', style=plot.style_stepline, linewidth=1, color=bcolor)
+pL = plot(show_first_day_OL ? L:na, title='Low' , style=plot.style_stepline, linewidth=1, color=bcolor)
+
+//First day of month high low extended lines
+first_day_high_line_extended      = only_show_hl_lines_ifday1islargerthanday2 and show_first_d_HL ?  line.new(bar_index[second_day_bar_index], firstday_high, bar_index, firstday_high,color = First_d_line_c):na
+line.delete(first_day_high_line_extended[1])
+first_day_low_line_extended       = only_show_hl_lines_ifday1islargerthanday2 and show_first_d_HL ? line.new(bar_index[second_day_bar_index], firstday_low, bar_index, firstday_low,color = First_d_line_c):na
+line.delete(first_day_low_line_extended[1])
+
+first_day_label                   = show_day_label ? label.new(bar_index[day_display_y_pos],day_low_lab,text=str.tostring(f_get_day()[midpoint_current_bar_and_first_day]) + "\n" + str.tostring(year[midpoint_current_bar_and_first_day])+ "/" + str.tostring(month[midpoint_current_bar_and_first_day])+ "/" + str.tostring(dayofmonth[midpoint_current_bar_and_first_day]), style=label.style_label_up,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize ):na
+label.delete(first_day_label[1])
+
+First_day_high_label              = show_labels_dayHL? label.new(bar_index+label_shift, firstday_high, text= "First Day High  |  " +  str.tostring(firstday_high), style=label.style_label_left,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize):na
+label.delete(First_day_high_label[1])
+First_day_low_label               = show_labels_dayHL ? label.new(bar_index+label_shift, firstday_low, text= "First Day Low  |  " +  str.tostring(firstday_low), style=label.style_label_left,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize):na
+label.delete(First_day_low_label[1])
+
+show_pivot_high_line              = mh == firstday_high ? false :true
+show_pivot_low_line               = ml == firstday_low ? false :true
+
+//Monthly high low pivot lines 
+Monthly_high_price_line  = show_pivot_high_line and show_pivot_lines ? line.new(bar_index[ph], mh, bar_index, mh, color = pivot_line_c, style=Line_st_piv):na
+line.delete(Monthly_high_price_line[1])
+Monthly_low_price_line  = show_pivot_low_line and show_pivot_lines ? line.new(bar_index[pl], ml, bar_index, ml, color = pivot_line_c, style=Line_st_piv):na
+line.delete(Monthly_low_price_line[1])
+label_ph_month = show_pivot_labels ? label.new(bar_index[ph],mh,text= "M-PH", style=label.style_label_down,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize ):na
+label.delete(label_ph_month[1])
+label_pl_month = show_pivot_labels ? label.new(bar_index[pl],ml,text= "M-PL", style=label.style_label_up,color =color.new(color.black,100),textcolor =day_label_col, size=TextSize ):na
+label.delete(label_pl_month[1])
+
+//Vol Candle
+candle_body   = dont_show_on_ltfs and show_vol_candle ? line.new(bar_index[first_Highest_index+1], open[first_Highest_index+1], bar_index[first_Highest_index+1], close[first_Highest_index+1], color=candle_c, width=body_width):na
+line.delete(candle_body[1])
+candle_wick   = dont_show_on_ltfs and show_vol_candle ? line.new(bar_index[first_Highest_index+1], high[first_Highest_index+1], bar_index[first_Highest_index+1], low[first_Highest_index+1], color=candle_c, width=wick_width):na
+line.delete(candle_wick[1])
+
+//Ltf poc
+ltf_poc       = show_mpoc ? line.new(bar_index[first_Highest_index+1], maxVol[first_Highest_index+1], bar_index, maxVol[first_Highest_index+1], color=mainpoc_c , width=1,style = Line_st_poc):na
+line.delete(ltf_poc[1])
+ltf_poc_label = show_mpoc and show_mpoc_label ? label.new(bar_index[first_Highest_index+1], maxVol[first_Highest_index+1], text="POC " + str.tostring(maxVol[first_Highest_index+1], format.mintick),color=color.new(color.black,100), style=label.style_label_right, textcolor=day_label_col, size=TextSize):na
+label.delete(ltf_poc_label[1])
