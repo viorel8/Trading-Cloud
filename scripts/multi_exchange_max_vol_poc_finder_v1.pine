@@ -1,0 +1,224 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// Jo
+
+//@version=5
+indicator("Multi Exchange vol max", shorttitle = "Multi Exchange vol max", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_bars_back = 5000)
+
+startTime            = input.time (0,"Entry Point",   confirm  = true,   inline = "21",                         group ="Dynamic Inputs")
+endTime              = input.time (0,"Entry Point",   confirm  = true,   inline = "21",                         group ="Dynamic Inputs")
+
+t1                   = input.symbol(title="Ticker 01",  defval = "BINANCE:BTCUSDT")
+t2                   = input.symbol(title="Ticker 02",  defval = "BINANCE:BTCUSDTPERP")
+t3                   = input.symbol(title="Ticker 03",  defval = "BINANCE:BTCPERP")
+t4                   = input.symbol(title="Ticker 04",  defval = "BYBIT:BTCUSDT.P")
+t5                   = input.symbol(title="Ticker 05",  defval = "BYBIT:BTCUSDT")
+t6                   = input.symbol(title="Ticker 06",  defval = "BYBIT:BTCUSD")
+
+[t1_volume_]         = request.security(t1, timeframe.period, expression=[volume])
+[t2_volume_]         = request.security(t2, timeframe.period, expression=[volume])
+[t3_volume_]         = request.security(t3, timeframe.period, expression=[volume])
+[t4_volume_]         = request.security(t4, timeframe.period, expression=[volume])
+[t5_volume_]         = request.security(t5, timeframe.period, expression=[volume])
+[t6_volume_]         = request.security(t6, timeframe.period, expression=[volume])
+
+
+inp_text_size        = input.string("Tiny", options = ["Tiny", "Small"], title = "Label Text Size", group = "Element On/Off")
+TextSize             = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : na
+inp_line_style_poc   = input.string("Dashed", options = ["Dotted", "Solid", "Dashed"], title = "Poc Line Style", group = "Element On/Off")
+Line_st_poc          = inp_line_style_poc == "Solid" ? line.style_solid : inp_line_style_poc == "Dotted" ? line.style_dotted : inp_line_style_poc == "Dashed" ? line.style_dashed : na
+
+
+Zone_ext             = input.int(1,  'Extend Volume Box Right',  minval=0, maxval=4000, group = "Element On/Off")
+wick_width           = input.int(1,  'Volume Candle Wick thickness',  minval=1, maxval=30, group = "Element On/Off")
+body_width           = input.int(2,  'Volume Candle Body thickness',  minval=1, maxval=30, group = "Element On/Off")
+
+show_mpoc            = input.bool(true, 'Show First POC (POC of the First Highest Volume Candle)', group = "Element On/Off")
+show_labels          = input.bool(true, 'Show labels', group = "Element On/Off")
+show_vol_c_labels    = input.bool(true, 'Show volume candle number Below High Vol Candles (1 being the greatest vol)', group = "Element On/Off")
+show_labels_timeline = input.bool(true, 'Show Time devider Labels', group = "Element On/Off")
+hide_lines           = input.bool(true, 'Vertical devider lines', group = "Element On/Off")
+show_stop            = input.bool(true, 'Show Stop Loss line', group = "Element On/Off")
+
+Text_c               = input.color(color.new(#f2f5f8, 30) ,'Label Text Color', group = "Color")
+Rise_c               = input.color(color.new(#afcff7, 100),'Volume Box BG Color', group = "Color")
+border_c             = input.color(color.new(#afcff7, 75) ,'Volume Box Border Color', group = "Color")
+candle_c             = input.color(color.new(#f2f5f8, 0)  ,'Highest Volume Candle Color', group = "Color")
+mainpoc_c            = input.color(color.new(#dee8f3, 60) ,'Poc Line Color', group = "Color")
+time_line_col        = input.color(color.new(#afcff7, 90) ,'Time line color', group = "Color")
+
+
+//Current timeframe in minutes
+currentTimeframe = timeframe.in_seconds(timeframe.period) / 60
+
+//Dynamic timeframe
+dynTf = currentTimeframe <= 30 ? "1" : currentTimeframe > 30 and currentTimeframe <= 180 ? "5" :
+ currentTimeframe > 180 and currentTimeframe <= 480 ? "15" : currentTimeframe > 480 and currentTimeframe <= 1440 ? "60" :
+  currentTimeframe > 1440 and currentTimeframe <= 4320 ? "120" : currentTimeframe > 4320 ? "240" : na
+
+ltfStats() =>
+
+    vol = na(volume) == false ? volume : 0
+
+    [close, vol]
+
+[ltfSrc, ltfVolume]
+ = request.security_lower_tf(syminfo.tickerid, dynTf, ltfStats())
+
+tpoArrSize              = array.size(ltfSrc)
+maxVolume               = array.max(ltfVolume,0)
+indexOfMaxVolume        = array.indexof(ltfVolume, maxVolume)
+maxVol                  = array.size(ltfSrc) > 0 ? array.get(ltfSrc, indexOfMaxVolume) : na
+
+
+
+
+
+bartime                 = int(ta.change(time))
+bars_start              = (math.floor((timenow - startTime) / bartime)) 
+bars_end                = (math.floor((timenow - endTime) / bartime)) 
+
+
+
+
+
+//HTF Vol				   
+arr_t1 = array.new_float(0)
+arr_t2 = array.new_float(0)
+arr_t3 = array.new_float(0)
+arr_t4 = array.new_float(0)
+arr_t5 = array.new_float(0)
+arr_t6 = array.new_float(0)
+
+index = nz(bars_start,1) 
+
+for i = index to bars_end by 1 
+    array.push(arr_t1, (t1_volume_[i]))
+    array.push(arr_t2, (t2_volume_[i]))
+    array.push(arr_t3, (t3_volume_[i]))
+    array.push(arr_t4, (t4_volume_[i]))
+    array.push(arr_t5, (t5_volume_[i]))
+    array.push(arr_t6, (t6_volume_[i]))
+
+t1_highest                        = array.max(arr_t1, 0)
+t2_highest                        = array.max(arr_t2, 0)
+t3_highest                        = array.max(arr_t3, 0)
+t4_highest                        = array.max(arr_t4, 0)
+t5_highest                        = array.max(arr_t5, 0)
+t6_highest                        = array.max(arr_t6, 0)
+
+t1_index                          = array.lastindexof(arr_t1, t1_highest) + index -1
+t2_index                          = array.lastindexof(arr_t2, t2_highest) + index -1
+t3_index                          = array.lastindexof(arr_t3, t3_highest) + index -1
+t4_index                          = array.lastindexof(arr_t4, t4_highest) + index -1
+t5_index                          = array.lastindexof(arr_t5, t5_highest) + index -1
+t6_index                          = array.lastindexof(arr_t6, t6_highest) + index -1
+
+
+
+// // //High Volume Box
+// High_vol_box = box.new(bar_index[t1_index+1], high[t1_index+1], bar_index+Zone_ext , low[t1_index+1], border_color=border_c, border_width=1, bgcolor=Rise_c, text="" , text_size=TextSize,text_halign=text.align_right,text_color=Text_c,text_valign=text.align_top) 
+// box.delete(High_vol_box[1])
+
+//t1 Volume Candle
+t1_candle_body = line.new(bar_index[t1_index+1], open[t1_index+1], bar_index[t1_index+1], close[t1_index+1], color=candle_c, width=body_width)
+line.delete(t1_candle_body[1])
+t1_candle_wick = line.new(bar_index[t1_index+1], high[t1_index+1], bar_index[t1_index+1], low[t1_index+1], color=candle_c, width=wick_width)
+line.delete(t1_candle_wick[1])
+// t1_candle_label = show_vol_c_labels ? label.new(bar_index[t1_index+1], low[t1_index+1], text="1", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t1_candle_label[1])
+
+//t2 Volume Candle
+t2_candle_body = line.new(bar_index[t2_index+1], open[t2_index+1], bar_index[t2_index+1], close[t2_index+1], color=candle_c, width=body_width)
+line.delete(t2_candle_body[1])
+t2_candle_wick = line.new(bar_index[t2_index+1], high[t2_index+1], bar_index[t2_index+1], low[t2_index+1], color=candle_c, width=wick_width)
+line.delete(t2_candle_wick[1])
+// t2_candle_label = show_vol_c_labels ? label.new(bar_index[t2_index+1], low[t2_index+1], text="\n2", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t2_candle_label[1])
+
+//t3 Volume Candle
+t3_candle_body = line.new(bar_index[t3_index+1], open[t3_index+1], bar_index[t3_index+1], close[t3_index+1], color=candle_c, width=body_width)
+line.delete(t3_candle_body[1])
+t3_candle_wick = line.new(bar_index[t3_index+1], high[t3_index+1], bar_index[t3_index+1], low[t3_index+1], color=candle_c, width=wick_width)
+line.delete(t3_candle_wick[1])
+// t3_candle_label = show_vol_c_labels ? label.new(bar_index[t3_index+1], low[t3_index+1], text="\n\n3", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t3_candle_label[1])
+
+//t4 Volume Candle
+t4_candle_body = line.new(bar_index[t4_index+1], open[t4_index+1], bar_index[t4_index+1], close[t4_index+1], color=candle_c, width=body_width)
+line.delete(t4_candle_body[1])
+t4_candle_wick = line.new(bar_index[t4_index+1], high[t4_index+1], bar_index[t4_index+1], low[t4_index+1], color=candle_c, width=wick_width)
+line.delete(t4_candle_wick[1])
+// t4_candle_label = show_vol_c_labels ? label.new(bar_index[t4_index+1], low[t4_index+1], text="\n\n\n4", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t4_candle_label[1])
+
+//t5 Volume Candle
+t5_candle_body = line.new(bar_index[t5_index+1], open[t5_index+1], bar_index[t5_index+1], close[t5_index+1], color=candle_c, width=body_width)
+line.delete(t5_candle_body[1])
+t5_candle_wick = line.new(bar_index[t5_index+1], high[t5_index+1], bar_index[t5_index+1], low[t5_index+1], color=candle_c, width=wick_width)
+line.delete(t5_candle_wick[1])
+// t5_candle_label = show_vol_c_labels ? label.new(bar_index[t5_index+1], low[t5_index+1], text="\n\n\n\n5", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t5_candle_label[1])
+
+//t6 Volume Candle
+t6_candle_body = line.new(bar_index[t6_index+1], open[t6_index+1], bar_index[t6_index+1], close[t6_index+1], color=candle_c, width=body_width)
+line.delete(t6_candle_body[1])
+t6_candle_wick = line.new(bar_index[t6_index+1], high[t6_index+1], bar_index[t6_index+1], low[t6_index+1], color=candle_c, width=wick_width)
+line.delete(t6_candle_wick[1])
+// t6_candle_label = show_vol_c_labels ? label.new(bar_index[t6_index+1], low[t6_index+1], text="\n\n\n\n\n6", color=color.new(color.white,100), style=label.style_label_up, textcolor=Text_c, size=TextSize):na
+// label.delete(t6_candle_label[1])
+
+//t1 Poc
+Poc_line_t1  = show_mpoc ? line.new(bar_index[t1_index+1], maxVol[t1_index+1], bar_index+20, maxVol[t1_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t1[1])
+
+//t2 Poc
+Poc_line_t2  = show_mpoc ? line.new(bar_index[t2_index+1], maxVol[t2_index+1], bar_index+20, maxVol[t2_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t2[1])
+
+//t3 Poc
+Poc_line_t3  = show_mpoc ? line.new(bar_index[t3_index+1], maxVol[t3_index+1], bar_index+20, maxVol[t3_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t3[1])
+
+//t4 Poc
+Poc_line_t4  = show_mpoc ? line.new(bar_index[t4_index+1], maxVol[t4_index+1], bar_index+20, maxVol[t4_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t4[1])
+
+//t5 Poc
+Poc_line_t5  = show_mpoc ? line.new(bar_index[t5_index+1], maxVol[t5_index+1], bar_index+20, maxVol[t5_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t5[1])
+
+//t6 Poc
+Poc_line_t6  = show_mpoc ? line.new(bar_index[t6_index+1], maxVol[t6_index+1], bar_index+20, maxVol[t6_index+1], color=mainpoc_c , width=1,style=Line_st_poc):na
+line.delete(Poc_line_t6[1])
+
+
+Poc_label_t1 = show_labels ? label.new(bar_index+23, maxVol[t1_index+1], text="1", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t1[1])
+Poc_label_t2 = show_labels ? label.new(bar_index+23, maxVol[t2_index+1], text="  2", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t2[1])
+Poc_label_t3 = show_labels ? label.new(bar_index+23, maxVol[t3_index+1], text="    3", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t3[1])
+Poc_label_t4 = show_labels ? label.new(bar_index+23, maxVol[t4_index+1], text="      4", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t4[1])
+Poc_label_t5 = show_labels ? label.new(bar_index+23, maxVol[t5_index+1], text="        5", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t5[1])
+Poc_label_t6 = show_labels ? label.new(bar_index+23, maxVol[t6_index+1], text="          6", color=color.new(color.black,100), style=label.style_label_left, textcolor=Text_c, size=TextSize):na
+label.delete(Poc_label_t6[1])
+
+if barstate.ishistory
+   
+    startLine  = hide_lines ? line.new(bar_index[bars_start-1], close, bar_index[bars_start-1], open, extend = extend.both, color = time_line_col,style=line.style_dashed):na
+    startLabel = hide_lines and show_labels_timeline ? label.new(bar_index[bars_start-1], close+200, "S",  style = label.style_label_up, color=color.new(color.black,100), textcolor = Text_c, size = TextSize,textalign=text.align_left):na
+    // startLabel2 = hide_lines and show_labels_timeline ? label.new(bar_index[bars_start-1], close+400, 
+    //  "\nt1: "+ str.tostring(t1) + " | " + str.tostring(maxVol[t1_index+1])+
+    //  "\nt2: "+ str.tostring(t2) + " | " + str.tostring(maxVol[t2_index+1])+
+    //  "\nt3: "+ str.tostring(t3) + " | " + str.tostring(maxVol[t3_index+1])+
+    //  "\nt4: "+ str.tostring(t4) + " | " + str.tostring(maxVol[t4_index+1]), style = label.style_label_left, color=color.new(color.black,100), textcolor = Text_c, size = TextSize,textalign=text.align_left):na
+
+    endLine    = hide_lines ? line.new(bar_index[bars_end-1], close, bar_index[bars_end-1], open, extend = extend.both, color = time_line_col,style=line.style_dashed):na
+    endLabel   = hide_lines and show_labels_timeline ? label.new(bar_index[bars_end-1], close+200,"E", style = label.style_label_up, color=color.new(color.black,100), textcolor = Text_c, size = TextSize):na
+    line.delete(startLine[1])
+    label.delete(startLabel[1])
+    line.delete(endLine[1])
+    label.delete(endLabel[1])
+    // label.delete(startLabel2[1])

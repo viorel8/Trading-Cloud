@@ -1,0 +1,161 @@
+//@version=5
+maxBarsBack = 4999
+indicator('Pivot mtf semaphore support&resistance [LM]', 'Pivot mtf semaphore S/R [LM]', true, max_bars_back=maxBarsBack, max_lines_count=500, max_labels_count=500)
+
+i_showFirst = input.bool(true, 'Show first', group='pivot setting 1', inline='01')
+i_firstTimeframe = input.timeframe("240", 'First timefrme', group='pivot setting 1', inline='01')
+i_firstLeft = input.int(2, 'Left', group='pivot setting 1', inline='11')
+i_firstRight = input.int(2, 'Right', group='pivot setting 1', inline='11')
+i_firstLineCount = input.int(4, 'Line count', group='pivot setting 1', inline='12')
+i_firstExtendLines = input.bool(false, 'Extend lines', group='pivot setting 1', inline='12')
+i_firstLineThickness = input.int(1, 'Line thickness', minval=1, group='pivot setting 1', inline='13')
+i_firstLineStyle = input.string(line.style_solid, 'Line style', options=[line.style_dotted, line.style_solid, line.style_dashed], group='pivot setting 1', inline='13')
+i_firstColor = input.color(color.new(color.black,40), 'Color', group='pivot setting 1', inline='13')
+
+
+i_showSecond = input.bool(true, 'Show second', group='pivot setting 2', inline='02')
+i_secondTimeframe = input.timeframe("D", 'Second timefrme', group='pivot setting 2', inline='02')
+i_secondLeft = input.int(2, 'Left', group='pivot setting 2', inline='21')
+i_secondRight = input.int(2, 'Right', group='pivot setting 2', inline='21')
+i_secondLineCount = input.int(4, 'Line count', group='pivot setting 2', inline='22')
+i_secondExtendLines = input.bool(false, 'Extend lines', group='pivot setting 2', inline='22')
+i_secondLineThickness = input.int(1, 'Line thickness', minval=1, group='pivot setting 2', inline='23')
+i_secondLineStyle = input.string(line.style_dotted, 'Line style', options=[line.style_dotted, line.style_solid, line.style_dashed], group='pivot setting 2', inline='23')
+i_secondColor = input.color(color.new(color.black,0), 'Color', group='pivot setting 2', inline='23')
+
+
+
+f_roundToTick(_price) =>
+    math.round(_price / syminfo.mintick) * syminfo.mintick
+
+f_tickFormat() =>
+    _s = str.tostring(syminfo.mintick)
+    _s := str.replace_all(_s, '25', '00')
+    _s := str.replace_all(_s, '5', '0')
+    _s := str.replace_all(_s, '1', '0')
+    _s
+
+f_offsetToP(_src, _pivotPrice, _maxBack) =>
+    int _offset = na
+    float _delta = 10e10
+    if not na(_pivotPrice)
+        for _i = 1 to _maxBack by 1
+            _thisDelta = math.abs(_src[_i] - _pivotPrice)
+            if _thisDelta < _delta
+                _delta := _thisDelta
+                _offset := _i
+                _offset
+    _offset
+
+f_resInMinutes() =>
+    _resInMinutes = timeframe.multiplier * (timeframe.isseconds ? 1. / 60. : timeframe.isminutes ? 1. : timeframe.isdaily ? 1440. : timeframe.isweekly ? 10080. : timeframe.ismonthly ? 43800. : na)
+    _resInMinutes
+
+f_tfResInMinutes(_resolution) =>
+    request.security(syminfo.tickerid, _resolution, f_resInMinutes())
+
+f_resNextStep(_res) =>
+    _res <= 1 ? '15' : _res <= 5 ? '60' : _res <= 30 ? '240' : _res <= 60 ? '1D' : _res <= 360 ? '3D' : _res <= 1440 ? '1W' : _res <= 10080 ? '1M' : '12M'
+
+f_multipleOfRes(_res, _mult) =>
+    _targetResInMin = _res * math.max(_mult, 1)
+    _targetResInMin <= 0.083 ? '5S' : _targetResInMin <= 0.251 ? '15S' : _targetResInMin <= 0.501 ? '30S' : _targetResInMin <= 1440 ? str.tostring(math.round(_targetResInMin)) : _targetResInMin <= 43800 ? str.tostring(math.round(math.min(_targetResInMin / 1440, 365))) + 'D' : str.tostring(math.round(math.min(_targetResInMin / 43800, 12))) + 'M'
+
+
+f_extendArray(_lineArray, _labelArray, _extendLines) =>
+    if array.size(_lineArray) > 0
+        for _i = array.size(_lineArray) - 1 to 0 by 1
+
+            x2 = line.get_x2(array.get(_lineArray, _i))
+            yValue = line.get_y1(array.get(_lineArray, _i))
+
+            if _extendLines or bar_index - 1 == x2 and not(high > yValue and low < yValue)
+                line.set_x2(array.get(_lineArray, _i), bar_index)
+                label.set_x(array.get(_labelArray, _i), bar_index)
+            float(na)
+                
+                
+f_drawLine(_x1, _x2, _yValue, _lineColor, _lineThickness, _lineStyle) =>
+    line.new(x1=_x1, y1=_yValue, x2=_x2, y2=_yValue, color=_lineColor, style=_lineStyle, width=_lineThickness)
+
+f_drawLabel(_x, _y, _textColor) =>
+    label.new(_x, _y, '         ' , xloc.bar_index, yloc.price, #00000000, label.style_none, _textColor)
+
+f_drawPivotLineAndLabel(_x1, _x2, _yValue, _colorLine, _lineCount, _lineThickness, _lineStyle, _pivotArray, _labelArray) =>
+    line l = f_drawLine(_x1, _x2, _yValue, _colorLine, _lineThickness, _lineStyle)
+    label lab = f_drawLabel(_x1, _yValue, _colorLine)
+
+    if array.size(_pivotArray) == _lineCount
+        line.delete(array.shift(_pivotArray))
+        label.delete(array.shift(_labelArray))
+    array.push(_pivotArray, l)
+    array.push(_labelArray, lab)
+
+f_addLines(_htfPH, _htfPL, _offsetToPH, _offsetToPL, _newPH, _newPL, _color, _lineCount, _lineThickness, _lineStyle, _pivotArray, _pivotLabelArray) =>
+    if _newPH
+        int x1 = bar_index - _offsetToPH
+        int x2 = bar_index
+        float yValue = _htfPH
+        f_drawPivotLineAndLabel(x1, x2, yValue, _color, _lineCount, _lineThickness, _lineStyle, _pivotArray, _pivotLabelArray)
+        
+    if _newPL
+        int x1 = bar_index - _offsetToPL
+        int x2 = bar_index
+        float yValue = _htfPL
+        f_drawPivotLineAndLabel(x1, x2, yValue, _color, _lineCount, _lineThickness, _lineStyle, _pivotArray, _pivotLabelArray)
+
+// arrays
+var firstPivotArray = array.new_line(i_firstLineCount)
+var secondPivotArray = array.new_line(i_secondLineCount)
+
+
+var firstPivotLabelArray = array.new_label(i_firstLineCount)
+var secondPivotLabelArray = array.new_label(i_secondLineCount)
+
+
+// common calcs
+var resInMinutes = f_resInMinutes()
+
+
+
+// first timeframe
+firstChartBarsInHtf = int(f_tfResInMinutes(i_firstTimeframe) / resInMinutes)
+firstChartBarsOffset = int(i_firstLeft * firstChartBarsInHtf)
+
+firstPH = ta.pivothigh(high, i_firstLeft, i_firstRight)
+firstPL = ta.pivotlow(low, i_firstLeft, i_firstRight)
+
+firstHtfPH = request.security(syminfo.tickerid, i_firstTimeframe, firstPH)
+firstHtfPL = request.security(syminfo.tickerid, i_firstTimeframe, firstPL)
+firstNewPH = na(firstHtfPH[1]) and not na(firstHtfPH)
+firstNewPL = na(firstHtfPL[1]) and not na(firstHtfPL)
+
+firstOffsetToPH = f_offsetToP(high, firstHtfPH, math.min(maxBarsBack, math.max(30, firstChartBarsOffset + firstChartBarsInHtf + 1)))
+firstOffsetToPL = f_offsetToP(low, firstHtfPL, math.min(maxBarsBack, math.max(30, firstChartBarsOffset + firstChartBarsInHtf + 1)))
+
+if i_showFirst and firstChartBarsOffset <= maxBarsBack
+    f_addLines(firstHtfPH, firstHtfPL, firstOffsetToPH, firstOffsetToPL, firstNewPH, firstNewPL,  i_firstColor, i_firstLineCount, i_firstLineThickness, i_firstLineStyle, firstPivotArray, firstPivotLabelArray)   
+
+if i_showFirst
+    f_extendArray(firstPivotArray, firstPivotLabelArray, i_firstExtendLines)
+
+// second timeframe
+secondChartBarsInHtf = int(f_tfResInMinutes(i_secondTimeframe) / resInMinutes)
+secondChartBarsOffset = int(i_secondLeft * secondChartBarsInHtf)
+
+secondPH = ta.pivothigh(high, i_secondLeft, i_secondRight)
+secondPL = ta.pivotlow(low, i_secondLeft, i_secondRight)
+
+secondHtfPH = request.security(syminfo.tickerid, i_secondTimeframe, secondPH)
+secondHtfPL = request.security(syminfo.tickerid, i_secondTimeframe, secondPL)
+secondNewPH = na(secondHtfPH[1]) and not na(secondHtfPH)
+secondNewPL = na(secondHtfPL[1]) and not na(secondHtfPL)
+
+secondOffsetToPH = f_offsetToP(high, secondHtfPH, math.min(maxBarsBack, math.max(30, secondChartBarsOffset + secondChartBarsInHtf + 1)))
+secondOffsetToPL = f_offsetToP(low, secondHtfPL, math.min(maxBarsBack, math.max(30, secondChartBarsOffset + secondChartBarsInHtf + 1)))
+
+if i_showSecond and secondChartBarsOffset <= maxBarsBack
+    f_addLines(secondHtfPH, secondHtfPL, secondOffsetToPH, secondOffsetToPL, secondNewPH, secondNewPL,  i_secondColor, i_secondLineCount, i_secondLineThickness, i_secondLineStyle, secondPivotArray, secondPivotLabelArray)   
+
+if i_showSecond
+    f_extendArray(secondPivotArray, secondPivotLabelArray, i_secondExtendLines)

@@ -1,0 +1,108 @@
+//Jo
+//@version=5
+indicator('High/Low', overlay=true, max_bars_back=500)
+
+show_labels         = input(title='Show H/L Price Labels', defval=true,  group ='Pivot Lines')
+show_high           = input(title='Show high line', defval=true, group ='Pivot Lines')
+show_Low            = input(title='Show Low line', defval=true,  group ='Pivot Lines')
+show_Mid            = input(title='Show Mid Point', defval=false,  group ='Pivot Lines')
+Show_mid_lab        = input(title='Show Mid Point Label', defval=false,  group ='Pivot Lines')
+show_fibs           = input.bool(false, 'Show 0.618 and 0.382 Fibs', group ='Pivot Lines')
+show_fib_lab        = input(title='Show Fib Labels', defval=false,  group ='Pivot Lines')
+fib_zone            = input.int (1,  'Fib Zone Width',       minval=1, maxval=300,  group ='Pivot Lines')
+line_width          = input.int (1,  'Line Width',       minval=1, maxval=4,  group ='Pivot Lines')
+fib_ext             = input(title='Fib Zone Extend Left', defval=1, group ='Pivot Lines')
+
+label_shift         = input.int (1,  'Shift Labels right/left',       minval=1, maxval=30000,  group ='Pivot Lines')
+inp_text_size       = input.string("Tiny", options = ["Tiny", "Small","Normal"], title = "Text Size",  group ='Pivot Lines')
+TextSize            = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : inp_text_size == "Normal" ? size.normal : na
+lastBarsBackMinimum = input(title='Number of candles back to ignore alert', defval=20, group ='Pivot Lines')
+
+top_line_c          = input.color(color.new(#123a55, 0), title = 'Top Line Color',    group ='Pivot Lines')
+bot_line_c          = input.color(color.new(#123a55, 0), title = 'Bottom Line Color', group ='Pivot Lines')
+mid_line_c          = input.color(color.new(#123a55, 0), title = 'Mid Line Color', group ='Pivot Lines')
+fib_col             = input.color(color.new(#123a55, 0), title = 'Fib Color', group ='Pivot Lines')
+label_col           = input.color(color.new(#123a55, 0), title = 'Label Color', group ='Pivot Lines')
+
+show_volume_gra     = input.bool(true, 'Show gradient volume candles', group = "Volume Candles")
+customUpColorT      = input.color(color.new(#0683f1, 0), "Up Color of gradient vol candles", group = "Volume Candles")
+customDownColorT    = input.color(color.new(#f82104, 0), "Down Color of gradient vol candles", group = "Volume Candles")
+length              = input.int(400, "Volume Lookback Period", 2, group = "Volume Candles")
+
+date_top            = input.time(0,title ='Top Line Left Anchor',   confirm = true, group ='Elements')
+date_bot            = input.time(0,title ='Bottom Line Left Anchor',confirm = true, group ='Elements')
+
+leftborder_top      = timenow - time < timenow - date_top
+leftborder_bot      = timenow - time < timenow - date_bot 
+rightborder         = barstate.islast
+
+max = float(na)
+max := not leftborder_top ? na : na(max[1]) ? high : max[1]
+barsSinceLastHigh = int(na)
+barsSinceLastHigh := not leftborder_top ? na : na(barsSinceLastHigh[1]) ? 0 : barsSinceLastHigh + 1
+
+min = float(na)
+min := not leftborder_bot ? na : na(min[1]) ? low : min[1]
+barsSinceLastLow = int(na)
+barsSinceLastLow := not leftborder_bot ? na : na(barsSinceLastLow[1]) ? 0 : barsSinceLastLow + 1
+
+if high > max
+    max := high
+    barsSinceLastHigh := 0
+    barsSinceLastHigh
+
+if low < min
+    min := low
+    barsSinceLastLow := 0
+    barsSinceLastLow
+
+lastHigh = rightborder ? max[1] : na
+lastLow = rightborder  ? min[1] : na
+
+//Fib calc
+mid_price_ = max  - min
+six_one_eight    = max  - 0.618 * mid_price_
+three_eight_two  = max  - 0.382 * mid_price_
+
+plot(show_high ? max : na, color=top_line_c, style=plot.style_stepline,  title='High', linewidth = line_width)
+plot(show_Low  ? min : na, color= bot_line_c, style=plot.style_stepline, title='Low', linewidth = line_width)
+
+mid_line = show_Mid ? line.new(bar_index, (min+max)/2, bar_index[1], (min+max)/2, color=mid_line_c,  width=1):na
+line.delete(mid_line[1])
+top_line_price_label = show_labels and show_high ? label.new(bar_index+label_shift, max, text = "$" + str.tostring(max,format.mintick), style=label.style_label_left,color =color.new(color.black,100),textcolor =label_col, size=TextSize):na
+label.delete(top_line_price_label[1])
+mid_line_price_label = show_labels and show_Mid and Show_mid_lab ? label.new(bar_index+label_shift, (max+min)/2, text = "$" + str.tostring((max+min)/2,format.mintick), style=label.style_label_left,color =color.new(color.black,100),textcolor =label_col, size=TextSize):na
+label.delete(mid_line_price_label[1])
+bot_line_price_label = show_labels and show_Low ? label.new(bar_index+label_shift, min, text = "$" + str.tostring(min,format.mintick), style=label.style_label_left,color =color.new(color.black,100),textcolor =label_col, size=TextSize):na
+label.delete(bot_line_price_label[1])
+
+//fib
+fib_1 = show_fibs and show_fib_lab ? label.new(bar_index+label_shift, six_one_eight, text = "$" + str.tostring(six_one_eight,format.mintick) + "  0.618/0.382", style=label.style_label_left,color =color.new(color.black,100),textcolor =label_col, size=TextSize):na
+label.delete(fib_1[1])
+fib_line1 = show_fibs ? line.new(bar_index, six_one_eight, bar_index[fib_ext], six_one_eight, color=fib_col,  width=fib_zone):na
+line.delete(fib_line1[1])
+
+fib_2 = show_fibs and show_fib_lab ? label.new(bar_index+label_shift, three_eight_two, text = "$" + str.tostring(three_eight_two,format.mintick) + "  0.618/0.382", style=label.style_label_left,color =color.new(color.black,100),textcolor =label_col, size=TextSize):na
+label.delete(fib_2[1])
+fib_line2 = show_fibs ? line.new(bar_index, three_eight_two, bar_index[fib_ext], three_eight_two, color=fib_col,  width=fib_zone):na
+line.delete(fib_line2[1])
+
+condition_high_broke = high  > max  and barsSinceLastHigh  > lastBarsBackMinimum
+condition_low_broke  = low   < min  and barsSinceLastLow   > lastBarsBackMinimum
+tostring_alert       = (high > max) and (barsSinceLastHigh > lastBarsBackMinimum) ? "Previous Pivot High" : (low  < min) and (barsSinceLastLow > lastBarsBackMinimum) ? "Previous Pivot Low" : na
+
+//Volume for last N periods
+var int [] pastVol = array.new_int(length)
+for i = 0 to length - 1
+    array.set(pastVol, i, int(volume[i]))
+
+//Heatmap color assignments
+upColor   = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customUpColorT)
+downColor = color.from_gradient(volume, array.min(pastVol), array.max(pastVol), na, customDownColorT)
+
+//Plot high vol candles
+plotcandle(show_volume_gra ? open:na, high, low, close, "Volume Heatmap Candlestick Colors", true ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), true ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100), bordercolor=true ? close >= open ? upColor : downColor : color.rgb(0, 0, 0, 100))
+
+if condition_high_broke or condition_low_broke
+
+    alert("Price (" + str.tostring(close) + ") crossed over " + str.tostring(tostring_alert) +  ").", alert.freq_once_per_bar)

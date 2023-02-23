@@ -1,0 +1,218 @@
+//jo  - I who is Jo declare that I copied some code from the TradingView open source library. Thanks to those! 
+
+//@version=5
+indicator('Liq range selector', shorttitle='Liq range selector', overlay=true)
+
+i_x1                 = input.float(100,     title='Custom Leverage Level 01 ', group = "Settings")
+i_x2                 = input.float(50,      title='Custom Leverage Level 02 ', group = "Settings")
+i_show_x1            = input.bool(true,     title='Show Level 1 ', group = "Settings")
+i_show_x2            = input.bool(true,     title='Show Level 2 ', group = "Settings")
+
+inp_text_size        = input.string("Tiny", options = ["Tiny", "Small","Normal"], title = "Text Sizs", group = "Settings")
+TextSize             = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : inp_text_size == "Normal" ? size.normal : na
+inp_line_style       = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Mid Line Style", group = "Settings")
+Line_st              = inp_line_style == "Solid" ? line.style_solid : inp_line_style == "Dotted" ? line.style_dotted : inp_line_style == "Dashed" ? line.style_dashed : na
+inp_line_stylez      = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Zone outline style", group = "Settings")
+Line_stz             = inp_line_stylez == "Solid" ? line.style_solid : inp_line_stylez == "Dotted" ? line.style_dotted : inp_line_stylez == "Dashed" ? line.style_dashed : na
+
+i_show_d             = input.bool(false,    title='Show liquidation dots', group = "Settings")
+i_show_zone          = input.bool(true,     title='Show liquidation zone', group = "Settings")
+i_show_mid           = input.bool(true,     title='Show liquidation zone mid line', group = "Settings")
+i_show_lab           = input.bool(true,     title='Show midline Price labels', group = "Settings")
+i_show_lab2           = input.bool(true,    title='Show zone Price labels', group = "Settings")
+i_show_labb          = input.bool(true,     title='Long/Short Labels', group = "Settings")
+i_maintmargin        = input.float(0.05,    title='Maintenance Margin above Liquidation', group = "Settings")
+i_show_longs         = input.bool(true,     title='Show long levels', group = "Settings")
+i_show_shorts        = input.bool(true,     title='Show short levels', group = "Settings")
+i_show_auto_hide     = input.bool(false,     title='Dont Use Auto Hide', group = "Settings")
+_txc                 = input.color(color.new(#404867, 0)   ,'Text Color', group = "Color")
+_c                   = input.color(color.new(#404867, 0)   ,'Dot Color', group = "Color")
+_z1                  = input.color(color.new(#0c0c0c, 100) ,'liquidation Zone BG Color up', group = "Color")
+_z2                  = input.color(color.new(#0c0c0c, 100) ,'liquidation Zone BG Color down', group = "Color")
+_zmid                = input.color(color.new(#0c0c0c, 80)  ,'liquidation Zone midline and Box outline Color', group = "Color")
+
+
+i_show_OI_           = input.bool(true,     title='Show OI ',      group = "OI")
+i_xw                 = input.float(3.1,    minval=0.1, maxval=20, step=0.1,  title='OI intensity',      group = "OI")
+i_xo                 = input.float(2,      title='Open Interest Plot Shift Up Down',      group = "OI")
+c01                  = input.color(color.new(#080808, 70),  title = 'OI line Color ',      group = "OI")
+c01_OI2              = input.color(color.new(#080808, 0),   title = 'OI Selsected Color',      group = "OI")
+i_lw                 = input.int(2,      title='Selected OI line width',      group = "OI")
+
+
+
+
+endTime              = input.time (0,"End Point closest from curent price",   confirm  = true,   inline = "21", group ="Inputs")
+startTime            = input.time (0,"Point farthest away to curent price",   confirm  = true,   inline = "21", group ="Inputs")
+t                    = input.time (0,"OI Anchor",   confirm  = true,   inline = "21", group ="Inputs")
+bartime              = int(ta.change(time))
+bars_start           = (math.floor((timenow - startTime) / bartime)) 
+bars_end             = (math.floor((timenow - endTime) / bartime)) 
+
+maint_margin         = 1 - i_maintmargin
+hide_left            = time > startTime ? true      :  false
+hide_right           = time < endTime   ? _c        :  color.new(color.black,100)
+
+hide_right_oi        = time < endTime and time > startTime ? color.new(#080808, 100)   : c01
+hide_right_oi2       = time < endTime and time > startTime ? c01_OI2  : color.new(#080808, 100)
+hide_right_oi3       = time < endTime and time > startTime ? color.new(#080808, 100)  : color.new(#080808, 100)
+only_symbol(s)       => 
+    array.get(str.split(s, ":"), 1)
+
+
+[hkopen,hkhigh,hklow,pnl01] = request.security("BINANCE:BTCUSDTPERP_OI", timeframe.period, [open / open[1] - 1,high / high[1] - 1,low / low[1] - 1,close / close[1] - 1])
+
+float pnl_cum01   = na
+float pnl_cum02   = na
+float pnl_cum03   = na
+float pnl_cum04   = na
+float first_close = na  
+
+first_close := time == t ? close-(i_xo*100) : nz(first_close[1])
+pnl_cum_cur = close / first_close - 1
+pnl_cum01 := time == t ? 0 : time >  t ? (1 + pnl_cum01[1]) * (1 + pnl01) - 1 : pnl_cum01
+pnl_cum02 := time == t ? 0 : time >  t ? (1 + pnl_cum02[1]) * (1 + hkopen) - 1 : pnl_cum02
+pnl_cum03 := time == t ? 0 : time >  t ? (1 + pnl_cum03[1]) * (1 + hkhigh) - 1 : pnl_cum03
+pnl_cum04 := time == t ? 0 : time >  t ? (1 + pnl_cum04[1]) * (1 + hklow) - 1 : pnl_cum04
+
+f_leveraged(_price, _x) =>
+    _xlong = true ? _x + 1 : _x
+    _xshort = true ? _x - 1 : _x
+    _liq_long = _price * (1 - 1 / _xlong * maint_margin)
+    _liq_short = _price * (1 + 1 / _xshort * maint_margin)
+    [_liq_long, _liq_short]
+
+f_print(_y, _txt, _c) =>
+    t2 = time_close + (0 + 0) * timeframe.multiplier * 60 * 1000
+    var _lbl = label.new(t2, _y, _txt, xloc.bar_time, yloc.price, color.white, label.style_none, _c, size.small)
+    label.set_xy(_lbl, t2, _y)
+    label.set_text(_lbl, _txt)
+
+[x1_long, x1_short] = f_leveraged(ohlc4, i_x1)
+[x2_long, x2_short] = f_leveraged(ohlc4, i_x2)
+
+
+down_bars = close < open ? true : false
+up_bars   = close > open ? true : false
+
+
+
+// plotcandle(i_show_OI_ ? (first_close * ((pnl_cum02/i_xw  ) + 1)):na,(first_close * ((pnl_cum03/i_xw  ) + 1)),(first_close * ((pnl_cum04/i_xw  ) + 1)),(first_close * ((pnl_cum01/i_xw  ) + 1)),title='PlotCandle',color=hide_right_oi3,wickcolor=color.new(color.green,100),bordercolor=hide_right_oi2)
+plot(i_show_OI_ ? (first_close * ((pnl_cum01/i_xw  ) + 1)):na, title = 'OI', color = hide_right_oi,style=plot.style_stepline,linewidth=1)
+plot(i_show_OI_ ? (first_close * ((pnl_cum01/i_xw  ) + 1)):na, title = 'OI', color = hide_right_oi2,style=plot.style_stepline,linewidth=i_lw)
+
+arr_t1 = array.new_float(0)
+arr_t2 = array.new_float(0)
+arr_t12 = array.new_float(0)
+arr_t22 = array.new_float(0)
+
+index = nz(bars_start,1) 
+
+for i = index to bars_end by 1 
+    array.push(arr_t1, (up_bars[i] ? x1_long[i]:na))
+    array.push(arr_t2, (down_bars[i] ? x1_short[i]:na))
+    array.push(arr_t12, (up_bars[i] ? x2_long[i]:na))
+    array.push(arr_t22, (down_bars[i] ? x2_short[i]:na))
+
+Long_bottom_liq_highest                   = array.max(arr_t1, 0)
+Long_bottom_liq_lowest                    = array.min(arr_t1, 0)
+Long_bottom_liq_highest2                  = array.max(arr_t12, 0)
+Long_bottom_liq_lowest2                   = array.min(arr_t12, 0)
+
+Short_bottom_liq_highest                  = array.max(arr_t2, 0)
+Short_bottom_liq_lowest                   = array.min(arr_t2, 0)
+Short_bottom_liq_highest2                 = array.max(arr_t22, 0)
+Short_bottom_liq_lowest2                  = array.min(arr_t22, 0)
+
+auto_hide_long = close > Long_bottom_liq_highest ? i_show_auto_hide:true
+auto_hide_short = close < Long_bottom_liq_lowest ? i_show_auto_hide:true
+
+//100x
+//Top dots | Short Liquidations
+show_short = i_show_labb ? "Short "+ str.tostring(i_x1)+'x' :na
+top_short_liq_line_mid    = i_show_mid and i_show_x1  ? line.new(bar_index[bars_end], (Short_bottom_liq_highest+Short_bottom_liq_lowest)/2, bar_index, (Short_bottom_liq_highest+Short_bottom_liq_lowest)/2, color=_zmid, style=Line_st):na
+line.delete(top_short_liq_line_mid[1])
+mid_label1              = i_show_x1 and i_show_lab  ? label.new(bar_index, (Short_bottom_liq_highest+Short_bottom_liq_lowest)/2,   text=str.tostring((Short_bottom_liq_highest+Short_bottom_liq_lowest)/2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(mid_label1 [1])
+Top_box_outline = i_show_zone and i_show_x1 ? box.new(bar_index[bars_start], Short_bottom_liq_highest, bar_index[bars_end], Short_bottom_liq_lowest, border_color = _zmid, border_width=1, border_style=Line_stz,bgcolor= _z1,text = show_short, text_size=TextSize, text_color=_txc, text_halign= text.align_left, text_valign= text.align_bottom):na
+box.delete(Top_box_outline[1])
+
+p1t_label              = i_show_x1 and i_show_lab2  ? label.new(bar_index[bars_end], Short_bottom_liq_highest,   text=str.tostring(Short_bottom_liq_highest, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(p1t_label [1])
+p2t_label              = i_show_x1 and i_show_lab2  ? label.new(bar_index[bars_end], Short_bottom_liq_lowest,   text=str.tostring(Short_bottom_liq_lowest, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(p2t_label [1])
+
+//Bottom dots | Long Liquidations
+show_long = i_show_labb ? "Long " + str.tostring(i_x1)+'x' :na
+top_long_liq_line_mid    = i_show_mid and i_show_x1 and auto_hide_long ? line.new(bar_index[bars_end], (Long_bottom_liq_highest+Long_bottom_liq_lowest)/2, bar_index, (Long_bottom_liq_highest+Long_bottom_liq_lowest)/2, color=_zmid, style=Line_st):na
+line.delete(top_long_liq_line_mid[1])
+mid_label1l              = i_show_x1 and i_show_lab and auto_hide_long  ? label.new(bar_index, (Long_bottom_liq_highest+Long_bottom_liq_lowest)/2,   text=str.tostring((Long_bottom_liq_highest+Long_bottom_liq_lowest)/2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(mid_label1l [1])
+Bottom_box_outline = i_show_zone and i_show_x1 and auto_hide_long ? box.new(bar_index[bars_start], Long_bottom_liq_highest, bar_index[bars_end], Long_bottom_liq_lowest, border_color = _zmid, border_width=1, border_style=Line_stz,bgcolor= _z2,text = show_long, text_size=TextSize, text_color=_txc, text_halign= text.align_left, text_valign= text.align_bottom):na
+box.delete(Bottom_box_outline[1])
+
+p1_label              = i_show_x1 and i_show_lab2 and auto_hide_long  ? label.new(bar_index[bars_end], Long_bottom_liq_highest,   text=str.tostring(Long_bottom_liq_highest, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(p1_label [1])
+p2_label              = i_show_x1 and i_show_lab2 and auto_hide_long  ? label.new(bar_index[bars_end], Long_bottom_liq_lowest,   text=str.tostring(Long_bottom_liq_lowest, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(p2_label [1])
+
+
+
+
+//50x
+//Top dots | Short Liquidations x2
+show_short2 = i_show_labb ? "Short "+ str.tostring(i_x2)+'x' :na
+top_short_liq_line_mid2    = i_show_mid and i_show_x2  ? line.new(bar_index[bars_end], (Short_bottom_liq_highest2+Short_bottom_liq_lowest2)/2, bar_index, (Short_bottom_liq_highest2+Short_bottom_liq_lowest2)/2, color=_zmid, style=Line_st):na
+line.delete(top_short_liq_line_mid2[1])
+mid_label12              = i_show_x2 and i_show_lab  ? label.new(bar_index, (Short_bottom_liq_highest2+Short_bottom_liq_lowest2)/2,   text=str.tostring((Short_bottom_liq_highest2+Short_bottom_liq_lowest2)/2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(mid_label12 [1])
+Top_box_outline2 = i_show_zone and i_show_x2 ? box.new(bar_index[bars_start], Short_bottom_liq_highest2, bar_index[bars_end], Short_bottom_liq_lowest2, border_color = _zmid, border_width=1, border_style=Line_stz,bgcolor= _z1,text = show_short2, text_size=TextSize, text_color=_txc, text_halign= text.align_left, text_valign= text.align_bottom):na
+box.delete(Top_box_outline2[1])
+onex_label              = i_show_x2 and i_show_lab2  ? label.new(bar_index[bars_end], Short_bottom_liq_highest2,   text=str.tostring(Short_bottom_liq_highest2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(onex_label[1])
+onex_label_s            = i_show_x2 and i_show_lab2  ? label.new(bar_index[bars_end], Short_bottom_liq_lowest2,   text=str.tostring(Short_bottom_liq_lowest2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(onex_label_s[1])
+
+
+//Bottom dots | Long Liquidationsx2
+show_long2 = i_show_labb ? "Long " + str.tostring(i_x2)+'x' :na
+top_long_liq_line_mid2    = i_show_mid and i_show_x2 and auto_hide_long ? line.new(bar_index[bars_end], (Long_bottom_liq_highest2+Long_bottom_liq_lowest2)/2, bar_index, (Long_bottom_liq_highest2+Long_bottom_liq_lowest2)/2, color=_zmid, style=Line_st):na
+line.delete(top_long_liq_line_mid2[1])
+onex_label2              = i_show_x2 and i_show_lab2 and auto_hide_long  ? label.new(bar_index[bars_end], Long_bottom_liq_highest2,   text=str.tostring(Long_bottom_liq_highest2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(onex_label2[1])
+onex_label_s2            = i_show_x2 and i_show_lab2 and auto_hide_long  ? label.new(bar_index[bars_end], Long_bottom_liq_lowest2,   text=str.tostring(Long_bottom_liq_lowest2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(onex_label_s2[1])
+mid_label1l2              = i_show_x2 and i_show_lab and auto_hide_long  ? label.new(bar_index, (Long_bottom_liq_highest2+Long_bottom_liq_lowest2)/2,   text=str.tostring((Long_bottom_liq_highest2+Long_bottom_liq_lowest2)/2, format.mintick) ,style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(mid_label1l2 [1])
+Bottom_box_outline2 = i_show_zone and i_show_x2 and auto_hide_long ? box.new(bar_index[bars_start], Long_bottom_liq_highest2, bar_index[bars_end], Long_bottom_liq_lowest2, border_color = _zmid, border_width=1, border_style=Line_stz,bgcolor= _z2,text = show_long2, text_size=TextSize, text_color=_txc, text_halign= text.align_left, text_valign= text.align_bottom):na
+box.delete(Bottom_box_outline2[1])
+
+
+plot(hide_left and i_show_x1 and up_bars and i_show_d and auto_hide_long ? x1_long:na, title='L1 Long', color=hide_right, offset=0, style = plot.style_cross)
+plot(hide_left and i_show_x2 and up_bars and i_show_d and auto_hide_long ? x2_long:na, title='L2 Long', color=hide_right, offset=0, style = plot.style_cross)
+
+
+plot(hide_left and i_show_x1 and down_bars and i_show_d ? x1_short:na, title='L1 Short', color=hide_right, offset=0, style = plot.style_cross)
+plot(hide_left and i_show_x2 and down_bars and i_show_d ? x2_short:na, title='L2 Short', color=hide_right, offset=0, style = plot.style_cross)
+
+
+
+oi                      = i_show_lab and i_show_OI_ ? label.new(bar_index, (first_close * ((pnl_cum01/i_xw  ) + 1)), text="OI",style = label.style_label_left, textcolor=_txc, size=TextSize, color= color.new(color.green,100)):na
+label.delete(oi[1])
+
+cross_level_one_short = ta.cross(close, Short_bottom_liq_lowest)
+cross_level_one_slong = ta.cross(close, Long_bottom_liq_highest)
+cross_level_two_short = ta.cross(close, Short_bottom_liq_lowest2)
+cross_level_two_slong = ta.cross(close, Long_bottom_liq_highest2)
+
+tosting_1s = cross_level_one_short ? "Short "+ str.tostring(i_x1)+'x' : na
+tosting_1l = cross_level_one_slong ? "Long "+ str.tostring(i_x1)+'x' : na
+tosting_2s = cross_level_two_short ? "Short "+ str.tostring(i_x2)+'x' : na
+tosting_2l = cross_level_two_slong ? "Long "+ str.tostring(i_x2)+'x' : na
+
+final_tostring = cross_level_one_short ? tosting_1s : cross_level_one_slong ? tosting_1l :cross_level_two_short? tosting_2s : cross_level_two_short ? tosting_2l :na
+
+//Alerts
+if cross_level_one_short or cross_level_one_slong or cross_level_two_short or cross_level_two_slong
+    // Trigger the alert the first time a cross occurs during the real-time bar.
+    alert("Price (" + str.tostring(close) + ") crossed over" + final_tostring, alert.freq_once_per_bar)

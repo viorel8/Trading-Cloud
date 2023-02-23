@@ -1,0 +1,20 @@
+//@version=5
+indicator('Compare', overlay=true, max_bars_back=4000)
+
+//Anchored
+new_period(p) => p and na(p[1])
+sm = timeframe.change("12M")
+var float c = open[1]
+if new_period(sm)
+    c := open
+if sm
+    c := open
+open_bar = ta.barssince(sm)
+  
+line_n = true ? line.new(bar_index[open_bar],c,bar_index,close,color=color.new(color.white,80),width = 1, extend = extend.none, style = line.style_dotted):na
+line.delete(line_n[1])
+
+find_price = line.get_price(line_n,bar_index[200])
+
+line_n1 = true ? line.new(bar_index[200],find_price,bar_index,close,color=color.new(color.green,1),width = 1, style = line.style_dotted):na
+line.delete(line_n1[1])

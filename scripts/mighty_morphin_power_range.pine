@@ -1,0 +1,334 @@
+//Jo
+//@version=5
+indicator('Mighty Morphin Power Range', overlay=true, max_bars_back=5000)
+
+var string SH1a      = 'Humdrum Color Select below'
+var string SH1       = 'Ferrari Safari Color'
+var string SH2       = 'Inflamed Gums Color'
+var string SH3       = 'Eastern Green Mamba Color'
+var string SH4       = 'African Zebra Color'
+var string SH5       = 'Bubble Gum and Cocaine Color'
+var string SH6       = 'Cherry Blossom Awesome Color'
+var string SH7       = 'Rainbow Pony Color'
+
+var string i_scheme  = input.string(SH1a, 'Color Theme', options=[SH1a,SH1, SH2, SH3, SH4, SH5, SH6, SH7],   group = "Color Settings")
+var bool i_invert    = input(false, 'Invert Colors',   group = "Color Settings")
+Trans_par            = input.int(70, title="AVwap Transparency", minval=1,   group = "Color Settings")
+plain                = input.color(#e6ececc2, 'Humdrum Color Must be Select Above',   group = "Color Settings")
+saber_fog            = input.int(70, title="Saber Fog", minval=1,   group = "Color Settings")
+saber_var            = input.int(2000, title="Saber Variance", minval=1,   group = "Color Settings")
+plainq               = input.color(#e6ecec52, 'Quarter Line Color',   group = "Color Settings")
+
+show_labels          = input(title='Show Labels', defval=true,  group ='Range')
+show_Mid             = input(title='Show 0.5 line', defval=true,  group ='Range')
+show_q               = input(title='Show Q lines', defval=true,  group ='Range')
+
+inp_text_size        = input.string("Tiny", options = ["Tiny", "Small","Normal"], title = "Text Size",  group ='Range')
+TextSize             = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : inp_text_size == "Normal" ? size.normal : na
+
+inp_line_style       = input.string("Solid", options = ["Dotted", "Solid", "Dashed"], title = "Top & Bot Line Style",  group ='Range')
+Line_st              = inp_line_style == "Solid" ? line.style_solid : inp_line_style == "Dotted" ? line.style_dotted : inp_line_style == "Dashed" ? line.style_dashed : na
+
+inp_line_stylem      = input.string("Solid", options = ["Dotted", "Solid", "Dashed"], title = "Mid Line Style",  group ='Range')
+Line_stmid           = inp_line_stylem == "Solid" ? line.style_solid : inp_line_stylem == "Dotted" ? line.style_dotted : inp_line_stylem == "Dashed" ? line.style_dashed : na
+
+inp_line_styleq      = input.string("Dotted", options = ["Dotted", "Solid", "Dashed"], title = "Quarters Line Style",  group ='Range')
+Line_stmiq           = inp_line_styleq == "Solid" ? line.style_solid : inp_line_styleq == "Dotted" ? line.style_dotted : inp_line_styleq == "Dashed" ? line.style_dashed : na
+
+Show_price           = input.bool(true,  title='Show price',        group = "Settings")
+Show_daily           = input.bool(true,  title='Show D Open Dots',        group = "Settings")
+Show_weekly          = input.bool(true,  title='Show W Open Dots',        group = "Settings")
+Show_monthly         = input.bool(true,  title='Show M Open Dots',        group = "Settings")
+Show_yearly          = input.bool(true,  title='Show Y Open Dots',        group = "Settings")
+
+dot_d_c              = input.color(color.new(#f3f3f7, 0),  title = 'Weekly Dot Color' ,  group = "Settings")
+dot_w_c              = input.color(color.new(#4504f5, 0),  title = 'Weekly Dot Color' ,  group = "Settings")
+dot_m_c              = input.color(color.new(#f73f07, 0),  title = 'Monthly Dot Color' , group = "Settings")
+dot_y_c              = input.color(color.new(#f73f07, 0),  title = 'Yearly Dot Color' ,  group = "Settings")
+
+daily_above_hide     = input.int(5,    minval=1, maxval=100, step=1,     title='Hide daily dots above timeframe', group = "TF Hide")
+weekly_above_hide    = input.int(60,    minval=1, maxval=100, step=1,     title='Hide weekly dots above timeframe',       group = "TF Hide")
+monthly_above_hide   = input.int(2400,    minval=1, maxval=100000, step=1,  title='Hide monthly dots above timeframe',        group = "TF Hide")
+
+[dop,dc,dl,dh,dc1]   = request.security(syminfo.tickerid, 'D', expression  = [open, close,low,high,close[1]], lookahead=barmerge.lookahead_on)
+[wo,wc,wl,wh,wc1]    = request.security(syminfo.tickerid, 'W', expression  = [open, close,low,high,close[1]], lookahead=barmerge.lookahead_on)
+[mo,mc,ml,mh,mc1]    = request.security(syminfo.tickerid, 'M', expression  = [open, close,low,high,close[1]], lookahead=barmerge.lookahead_on)
+[yo,yc,yl,yh,yc1]    = request.security(syminfo.tickerid, '12M', expression  = [open, close,low,high,close[1]], lookahead=barmerge.lookahead_on)
+
+new_day              = dc1[1]  != dc1
+new_week             = wc1[1]  != wc1
+new_month            = mc1[1]  != mc1
+new_year             = yc1[1]  != yc1
+
+plotchar(new_day   and Show_daily   and timeframe.multiplier <= daily_above_hide  ? dop : na, title='Close', char='•', location=location.absolute, color=dot_d_c, offset=0, size=size.tiny)
+plotchar(new_week  and Show_weekly  and timeframe.multiplier <= weekly_above_hide  ? wo : na, title='Close', char='•', location=location.absolute, color=dot_w_c, offset=0, size=size.tiny)
+plotchar(new_month and Show_monthly and timeframe.multiplier <= monthly_above_hide ? mo : na, title='Close', char='•', location=location.absolute, color=dot_m_c, offset=0, size=size.tiny)
+plotchar(new_year  and Show_yearly  ? mo : na, title='Close', char='☉', location=location.absolute, color=dot_m_c, offset=0, size=size.tiny)
+
+date_top             = input.time(0,title ='Starting Point',   confirm = true)
+leftborder_top       = timenow - time < timenow - date_top
+rightborder          = barstate.islast
+bartime              = int(ta.change(time))
+bars_start_top       = (math.floor((timenow - date_top) / bartime)) 
+
+maxa = float(na)
+maxa := not leftborder_top ? na : na(maxa[1]) ? high : maxa[1]
+barsSinceLastHigh = int(na)
+barsSinceLastHigh := not leftborder_top ? na : na(barsSinceLastHigh[1]) ? 0 : barsSinceLastHigh + 1
+
+mina = float(na)
+mina := not leftborder_top ? na : na(mina[1]) ? low : mina[1]
+barsSinceLastLow = int(na)
+barsSinceLastLow := not leftborder_top ? na : na(barsSinceLastLow[1]) ? 0 : barsSinceLastLow + 1
+
+if high > maxa
+    maxa := high
+    barsSinceLastHigh := 0
+    barsSinceLastHigh
+
+if low < mina
+    mina := low
+    barsSinceLastLow := 0
+    barsSinceLastLow
+
+lastHigh = rightborder ? maxa[1] : na
+lastLow = rightborder  ? mina[1] : na
+
+phsince = -ta.highestbars(high,nz(bars_start_top,1))
+plsince = -ta.lowestbars(low,nz(bars_start_top,1))
+
+
+
+var color[] c_gradients = array.new_color(na)
+
+if barstate.isfirst
+    if i_scheme == SH1a
+        array.push(c_gradients, plain)
+
+    else if i_scheme == SH1
+        array.push(c_gradients,color.new( #ff0000,Trans_par))
+        array.push(c_gradients,color.new( #ff2c00,Trans_par))
+        array.push(c_gradients,color.new( #fe4200,Trans_par))
+        array.push(c_gradients,color.new( #fc5300,Trans_par))
+        array.push(c_gradients,color.new( #f96200,Trans_par))
+        array.push(c_gradients,color.new( #f57000,Trans_par))
+        array.push(c_gradients,color.new( #f07e00,Trans_par))
+        array.push(c_gradients,color.new( #ea8a00,Trans_par))
+        array.push(c_gradients,color.new( #e39600,Trans_par))
+        array.push(c_gradients,color.new( #dca100,Trans_par))
+        array.push(c_gradients,color.new( #d3ac00,Trans_par))
+        array.push(c_gradients,color.new( #c9b600,Trans_par))
+        array.push(c_gradients,color.new( #bfc000,Trans_par))
+        array.push(c_gradients,color.new( #b3ca00,Trans_par))
+        array.push(c_gradients,color.new( #a6d400,Trans_par))
+        array.push(c_gradients,color.new( #97dd00,Trans_par))
+        array.push(c_gradients,color.new( #86e600,Trans_par))
+        array.push(c_gradients,color.new( #71ee00,Trans_par))
+        array.push(c_gradients,color.new( #54f700,Trans_par))
+        array.push(c_gradients,color.new( #1eff00,Trans_par))
+    else if i_scheme == SH2
+        array.push(c_gradients,color.new( #ff00d4,Trans_par))
+        array.push(c_gradients,color.new( #f71fda,Trans_par))
+        array.push(c_gradients,color.new( #ef2ee0,Trans_par))
+        array.push(c_gradients,color.new( #e63ae5,Trans_par))
+        array.push(c_gradients,color.new( #de43ea,Trans_par))
+        array.push(c_gradients,color.new( #d44bee,Trans_par))
+        array.push(c_gradients,color.new( #cb52f2,Trans_par))
+        array.push(c_gradients,color.new( #c158f6,Trans_par))
+        array.push(c_gradients,color.new( #b75df9,Trans_par))
+        array.push(c_gradients,color.new( #ac63fb,Trans_par))
+        array.push(c_gradients,color.new( #a267fe,Trans_par))
+        array.push(c_gradients,color.new( #966bff,Trans_par))
+        array.push(c_gradients,color.new( #8b6fff,Trans_par))
+        array.push(c_gradients,color.new( #7e73ff,Trans_par))
+        array.push(c_gradients,color.new( #7276ff,Trans_par))
+        array.push(c_gradients,color.new( #6479ff,Trans_par))
+        array.push(c_gradients,color.new( #557bff,Trans_par))
+        array.push(c_gradients,color.new( #437eff,Trans_par))
+        array.push(c_gradients,color.new( #2e80ff,Trans_par))
+        array.push(c_gradients,color.new( #0082ff,Trans_par))
+    else if i_scheme == SH3
+        array.push(c_gradients,color.new( #fafa6e,Trans_par))
+        array.push(c_gradients,color.new( #e0f470,Trans_par))
+        array.push(c_gradients,color.new( #c7ed73,Trans_par))
+        array.push(c_gradients,color.new( #aee678,Trans_par))
+        array.push(c_gradients,color.new( #97dd7d,Trans_par))
+        array.push(c_gradients,color.new( #81d581,Trans_par))
+        array.push(c_gradients,color.new( #6bcc86,Trans_par))
+        array.push(c_gradients,color.new( #56c28a,Trans_par))
+        array.push(c_gradients,color.new( #42b98d,Trans_par))
+        array.push(c_gradients,color.new( #2eaf8f,Trans_par))
+        array.push(c_gradients,color.new( #18a48f,Trans_par))
+        array.push(c_gradients,color.new( #009a8f,Trans_par))
+        array.push(c_gradients,color.new( #00908d,Trans_par))
+        array.push(c_gradients,color.new( #008589,Trans_par))
+        array.push(c_gradients,color.new( #007b84,Trans_par))
+        array.push(c_gradients,color.new( #0c707d,Trans_par))
+        array.push(c_gradients,color.new( #196676,Trans_par))
+        array.push(c_gradients,color.new( #215c6d,Trans_par))
+        array.push(c_gradients,color.new( #275263,Trans_par))
+        array.push(c_gradients,color.new( #2a4858,Trans_par))
+    else if i_scheme == SH4
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #f0f0f0,Trans_par))
+        array.push(c_gradients,color.new( #e1e1e1,Trans_par))
+        array.push(c_gradients,color.new( #d2d2d2,Trans_par))
+        array.push(c_gradients,color.new( #c3c3c3,Trans_par))
+        array.push(c_gradients,color.new( #b5b5b5,Trans_par))
+        array.push(c_gradients,color.new( #a7a7a7,Trans_par))
+        array.push(c_gradients,color.new( #999999,Trans_par))
+        array.push(c_gradients,color.new( #8b8b8b,Trans_par))
+        array.push(c_gradients,color.new( #7e7e7e,Trans_par))
+        array.push(c_gradients,color.new( #707070,Trans_par))
+        array.push(c_gradients,color.new( #636363,Trans_par))
+        array.push(c_gradients,color.new( #575757,Trans_par))
+        array.push(c_gradients,color.new( #4a4a4a,Trans_par))
+        array.push(c_gradients,color.new( #3e3e3e,Trans_par))
+        array.push(c_gradients,color.new( #333333,Trans_par))
+        array.push(c_gradients,color.new( #272727,Trans_par))
+        array.push(c_gradients,color.new( #1d1d1d,Trans_par))
+        array.push(c_gradients,color.new( #121212,Trans_par))
+        array.push(c_gradients,color.new( #000000,Trans_par))
+    else if i_scheme == SH5
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #f4f5fa,Trans_par))
+        array.push(c_gradients,color.new( #e9ebf5,Trans_par))
+        array.push(c_gradients,color.new( #dee1f0,Trans_par))
+        array.push(c_gradients,color.new( #d3d7eb,Trans_par))
+        array.push(c_gradients,color.new( #c8cde6,Trans_par))
+        array.push(c_gradients,color.new( #bdc3e1,Trans_par))
+        array.push(c_gradients,color.new( #b2b9dd,Trans_par))
+        array.push(c_gradients,color.new( #a7b0d8,Trans_par))
+        array.push(c_gradients,color.new( #9ca6d3,Trans_par))
+        array.push(c_gradients,color.new( #919dce,Trans_par))
+        array.push(c_gradients,color.new( #8594c9,Trans_par))
+        array.push(c_gradients,color.new( #7a8bc4,Trans_par))
+        array.push(c_gradients,color.new( #6e82bf,Trans_par))
+        array.push(c_gradients,color.new( #6279ba,Trans_par))
+        array.push(c_gradients,color.new( #5570b5,Trans_par))
+        array.push(c_gradients,color.new( #4768b0,Trans_par))
+        array.push(c_gradients,color.new( #385fab,Trans_par))
+        array.push(c_gradients,color.new( #2557a6,Trans_par))
+        array.push(c_gradients,color.new( #004fa1,Trans_par))
+    else if i_scheme == SH6
+        array.push(c_gradients,color.new( #ffffff,Trans_par))
+        array.push(c_gradients,color.new( #fff4f1,Trans_par))
+        array.push(c_gradients,color.new( #ffe9e3,Trans_par))
+        array.push(c_gradients,color.new( #ffded6,Trans_par))
+        array.push(c_gradients,color.new( #ffd3c8,Trans_par))
+        array.push(c_gradients,color.new( #fec8bb,Trans_par))
+        array.push(c_gradients,color.new( #fdbdae,Trans_par))
+        array.push(c_gradients,color.new( #fbb2a1,Trans_par))
+        array.push(c_gradients,color.new( #f8a794,Trans_par))
+        array.push(c_gradients,color.new( #f69c87,Trans_par))
+        array.push(c_gradients,color.new( #f3917b,Trans_par))
+        array.push(c_gradients,color.new( #f0856f,Trans_par))
+        array.push(c_gradients,color.new( #ec7a62,Trans_par))
+        array.push(c_gradients,color.new( #e86e56,Trans_par))
+        array.push(c_gradients,color.new( #e4634a,Trans_par))
+        array.push(c_gradients,color.new( #df563f,Trans_par))
+        array.push(c_gradients,color.new( #db4933,Trans_par))
+        array.push(c_gradients,color.new( #d63a27,Trans_par))
+        array.push(c_gradients,color.new( #d0291b,Trans_par))
+        array.push(c_gradients,color.new( #cb0e0e,Trans_par))
+    else if i_scheme == SH7
+        array.push(c_gradients,color.new( #E50000,Trans_par))
+        array.push(c_gradients,color.new( #E6023B,Trans_par))
+        array.push(c_gradients,color.new( #E70579,Trans_par))
+        array.push(c_gradients,color.new( #E908B7,Trans_par))
+        array.push(c_gradients,color.new( #E00BEA,Trans_par))
+        array.push(c_gradients,color.new( #A70DEB,Trans_par))
+        array.push(c_gradients,color.new( #6E10ED,Trans_par))
+        array.push(c_gradients,color.new( #3613EE,Trans_par))
+        array.push(c_gradients,color.new( #162DEF,Trans_par))
+        array.push(c_gradients,color.new( #1969F1,Trans_par))
+        array.push(c_gradients,color.new( #1CA4F2,Trans_par))
+        array.push(c_gradients,color.new( #1FDFF4,Trans_par))
+        array.push(c_gradients,color.new( #22F5D2,Trans_par))
+        array.push(c_gradients,color.new( #25F69C,Trans_par))
+        array.push(c_gradients,color.new( #28F867,Trans_par))
+        array.push(c_gradients,color.new( #2CF933,Trans_par))
+        array.push(c_gradients,color.new( #5DFA2F,Trans_par))
+        array.push(c_gradients,color.new( #96FC32,Trans_par))
+        array.push(c_gradients,color.new( #CDFD35,Trans_par))
+        array.push(c_gradients, color.new(#FFF938,Trans_par))
+
+    if i_invert
+        array.reverse(c_gradients)
+
+f_rescale(_src, _min, _max) =>
+    var int _size = array.size(c_gradients) - 1
+    int _colorStep = int(_size * (_src - _min)) / int(math.max(_max - _min, 10e-10))
+    _colorStep := _colorStep > _size ? _size : _colorStep < 0 ? 0 : _colorStep
+    int(_colorStep)
+
+f_colGrad(_src, _min, _max) =>
+    array.get(c_gradients, f_rescale(_src, _min, _max))
+
+rsi = ta.rsi(close, saber_fog)
+[_, rsiUpperBand, rsiLowerBand] = ta.bb(rsi, saber_var, 2.618)
+color c_rsi = f_colGrad(rsi, rsiLowerBand, rsiUpperBand)
+
+choosw_start = (nz(phsince,1)) > (nz(plsince,1)) ? nz(phsince,1) : nz(plsince,1)
+choosw_start2 = (nz(phsince,1)) > (nz(plsince,1)) ? nz(phsince,1) : nz(plsince,1)
+
+//Lines
+
+//Top Line
+line_high = line.new(bar_index[choosw_start],high[nz(phsince,1)],bar_index,high[nz(phsince,1)],color=c_rsi,style=Line_st)
+line.delete(line_high[1])
+
+//1 Short
+line_midabove1 = show_q ? line.new(bar_index,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2)+(high[nz(phsince,1)]))/2,bar_index-20,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2)+(high[nz(phsince,1)]))/2,color=plainq,style=Line_stmiq):na
+line.delete(line_midabove1[1])
+
+//2
+line_midabove = show_q ? line.new(bar_index[choosw_start],(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2,bar_index,(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2,color=plainq,style=Line_stmiq):na
+line.delete(line_midabove[1])
+
+//3 Short
+line_midabove2 = show_q ? line.new(bar_index,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2)+((low[nz(plsince,1)]+high[nz(phsince,1)])/2))/2,bar_index-20,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2)+((low[nz(plsince,1)]+high[nz(phsince,1)])/2))/2,color=plainq,style=Line_stmiq):na
+line.delete(line_midabove2[1])
+
+//Mid Line
+line_mid= show_Mid ? line.new(bar_index[choosw_start],(low[nz(plsince,1)]+high[nz(phsince,1)])/2,bar_index,(low[nz(plsince,1)]+high[nz(phsince,1)])/2,color=c_rsi,style=Line_stmid):na
+line.delete(line_mid[1])
+
+//3 Short
+line_midbelow4 = show_q ? line.new(bar_index,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2)+((low[nz(plsince,1)]+high[nz(phsince,1)])/2))/2,bar_index-20,(((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2)+((low[nz(plsince,1)]+high[nz(phsince,1)])/2))/2,color=plainq,style=Line_stmiq):na
+line.delete(line_midbelow4[1])
+
+//2
+line_midbelow = show_q ? line.new(bar_index[choosw_start],(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2,bar_index,(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2,color=plainq,style=Line_stmiq):na
+line.delete(line_midbelow[1])
+
+//1 Short
+line_lowb = line.new(bar_index,(((low[nz(plsince,1)])+((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2)))/2,bar_index-20,(((low[nz(plsince,1)])+((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2)))/2,color=plainq,style=Line_stmiq)
+line.delete(line_lowb[1])
+
+//low line
+line_low = line.new(bar_index[choosw_start2],low[nz(plsince,1)],bar_index,low[nz(plsince,1)],color=c_rsi,style=Line_st)
+line.delete(line_low[1])
+
+
+//Labels
+
+t1_tostring = Show_price ? "1.0  $" + str.tostring(maxa,format.mintick) : "1.00"
+top_line_price_label = show_labels  ? label.new(bar_index, maxa, text = t1_tostring, style=label.style_label_left,color =color.new(color.black,100),textcolor =c_rsi, size=TextSize):na
+label.delete(top_line_price_label[1])
+
+t2_tostring = Show_price ? "0.25  $" + str.tostring((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2,format.mintick) : "0.25"
+mid_line_price_labela = show_labels and show_q ? label.new(bar_index,(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(high[nz(phsince,1)]))/2, text = t2_tostring, style=label.style_label_left,color =color.new(color.black,100),textcolor =c_rsi, size=TextSize):na
+label.delete(mid_line_price_labela[1])
+
+t3_tostring = Show_price ? "0.5  $" + str.tostring((low[nz(plsince,1)]+high[nz(phsince,1)])/2,format.mintick) : "0.50"
+mid_line_price_label = show_labels and show_Mid ? label.new(bar_index, (low[nz(plsince,1)]+high[nz(phsince,1)])/2, text = t3_tostring, style=label.style_label_left,color =color.new(color.black,100),textcolor =c_rsi, size=TextSize):na
+label.delete(mid_line_price_label[1])
+
+t4_tostring = Show_price ? "0.75  $" + str.tostring((((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2,format.mintick) : "0.70"
+mid_line_price_labelb = show_labels and show_q ? label.new(bar_index,(((low[nz(plsince,1)]+high[nz(phsince,1)])/2)+(low[nz(plsince,1)]))/2, text = t4_tostring, style=label.style_label_left,color =color.new(color.black,100),textcolor =c_rsi, size=TextSize):na
+label.delete(mid_line_price_labelb[1])
+
+t5_tostring = Show_price ? "0.0  $" + str.tostring(mina,format.mintick) : "0.00"
+bot_line_price_label = show_labels ? label.new(bar_index, mina, text = t5_tostring, style=label.style_label_left,color =color.new(color.black,100),textcolor =c_rsi, size=TextSize):na
+label.delete(bot_line_price_label[1])

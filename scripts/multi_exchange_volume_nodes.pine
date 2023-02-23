@@ -1,0 +1,295 @@
+//Jo-Pippin
+//@version=5
+
+indicator("Exchange Volume Nodes V1", "Exchange Volume Nodes V1", overlay=true, max_bars_back = 500)
+
+inp_text_size3      = input.string("Tiny", options = ["Tiny", "Small","Normal"], title = "Label Text Size", group = "Table Settings")
+TextSize3           = inp_text_size3 == "Tiny" ? size.tiny : inp_text_size3 == "Small" ? size.small : inp_text_size3 == "Normal" ? size.normal : na
+
+//Ticker 01
+show1 = input.bool(true, 'Show Ticker 01',group= 'Ticker 01 Settings')
+show_vol_info = input.bool(true, 'Show Ticker 01 vol info for last 5 instances',group= 'Ticker 01 Settings')
+Ticker_01 = input.symbol(title="TICKER 01:",  defval="BINANCE:BTCUSDTPERP",group= 'Ticker 01 Settings')
+i_res = '1'
+Box_exp_T_01= input.int(1, 'Box Expand',step=1, minval=1, maxval=20,group= 'Ticker 01 Settings')
+major_vol_ticker01_warning_amount= input.int(210, 'Ticker 01 volume warning min amount',step=10, minval=1, maxval=2000000,group= 'Ticker 01 Settings')
+Line_exp_T_01= input.int(75, 'Line Expand',step=1, minval=1, maxval=170,group= 'Ticker 01 Settings')
+amount = input.int(17000, "Total volume", minval=1, maxval=10000000, step=1000,group= 'Ticker 01 Settings')
+Divided1 = input.int(100, 'Volume x Pair 1', minval=1, maxval=100,group= 'Ticker 01 Settings')
+bgColor = input.color(color.new(#afcff7,0), "Background Color",group= 'Ticker 01 Settings')
+Warning_Color_ticker_01 = input.color(color.new(#afcff7, 0), "Warning Color",group= 'Ticker 01 Settings')
+borderColor = input.color(color.new(#2a2e39,0), "Label BG Color",group= 'Ticker 01 Settings')
+arrVolume  = request.security_lower_tf(Ticker_01, i_res, volume, false)
+arrClose  = request.security_lower_tf(Ticker_01, i_res, close, false)
+arrOpen  = request.security_lower_tf(Ticker_01, i_res, open, false)
+
+//Ticker 02
+show2 = input.bool(true, 'Show Ticker 02',group= 'Ticker 02 Settings')
+show_vol_info2 = input.bool(true, 'Show Ticker 02 vol info for last 5 instances',group= 'Ticker 02 Settings')
+Ticker_02 = input.symbol(title="TICKER 02:",  defval="BINANCE:BTCUSDT",group= 'Ticker 02 Settings')
+i_res2 = '1'
+Box_exp_T_02= input.int(1, 'Box Expand',step=1, minval=1, maxval=20,group= 'Ticker 02 Settings')
+major_vol_ticker02_warning_amount= input.int(50, 'Ticker 02 volume warning min amount',step=10, minval=1, maxval=2000000,group= 'Ticker 02 Settings')
+Line_exp_T_02= input.int(55, 'Line Expand',step=1, minval=1, maxval=160,group= 'Ticker 02 Settings')
+amount2 = input.int(3500, "Total volume", minval=1, maxval=10000000, step=1000,group= 'Ticker 02 Settings')
+Divided2 = input.int(100, 'Volume x Pair 2', minval=1, maxval=100,group= 'Ticker 02 Settings')
+bgColor2 = input.color(color.new(#afcff7,0), "Background Color",group= 'Ticker 02 Settings')
+Warning_Color_ticker_02 = input.color(color.new(#afcff7, 0), "Warning Color",group= 'Ticker 02 Settings')
+
+arrVolume2  = request.security_lower_tf(Ticker_02, i_res2, volume, false)
+arrClose2  = request.security_lower_tf(Ticker_02, i_res2, close, false)
+arrOpen2  = request.security_lower_tf(Ticker_02, i_res2, open, false)
+
+//Ticker 03
+show3 = input.bool(true, 'Show Ticker 03',group= 'Ticker 03 Settings')
+show_vol_info3 = input.bool(true, 'Show Ticker 03 vol info for last 5 instances',group= 'Ticker 03 Settings')
+Ticker_03 = input.symbol(title="TICKER 03:",  defval="BINANCE:BTCPERP",group= 'Ticker 03 Settings')
+i_res3 = '1'
+Box_exp_T_03= input.int(1, 'Box Expand',step=1, minval=1, maxval=20,group= 'Ticker 03 Settings')
+major_vol_ticker03_warning_amount= input.int(4000, 'Ticker 03 volume warning min amount',step=10, minval=1, maxval=2000000,group= 'Ticker 03 Settings')
+Line_exp_T_03= input.int(35, 'Line Expand',step=1, minval=1, maxval=160,group= 'Ticker 03 Settings')
+amount3 = input.int(1400000, "Total volume", minval=1, maxval=10000000, step=1000,group= 'Ticker 03 Settings')
+Divided3 = input.int(1000, 'Volume x Pair 3', minval=1, maxval=10000,group= 'Ticker 03 Settings')
+bgColor3 = input.color(color.new(#afcff7,0), "Background Color",group= 'Ticker 03 Settings')
+Warning_Color_ticker_03 = input.color(color.new(#afcff7, 0), "Warning Color",group= 'Ticker 03 Settings')
+
+arrVolume3  = request.security_lower_tf(Ticker_03, i_res3, volume, false)
+arrClose3  = request.security_lower_tf(Ticker_03, i_res3, close, false)
+arrOpen3  = request.security_lower_tf(Ticker_03, i_res3, open, false)
+
+//Ticker 04
+show4 = input.bool(true, 'Show Ticker 04',group= 'Ticker 04 Settings')
+show_vol_info4 = input.bool(true, 'Show Ticker 04 vol info for last 5 instances',group= 'Ticker 04 Settings')
+Ticker_04 = input.symbol(title="TICKER 04:",  defval="BYBIT:BTCUSDT.P",group= 'Ticker 04 Settings')
+i_res4 = '1'
+Box_exp_T_04= input.int(1, 'Box Expand',step=1, minval=1, maxval=20,group= 'Ticker 04 Settings')
+major_vol_ticker04_warning_amount= input.int(1800, 'Ticker 04 volume warning min amount',step=10, minval=1, maxval=2000000,group= 'Ticker 04 Settings')
+Line_exp_T_04= input.int(15, 'Line Expand',step=1, minval=1, maxval=160,group= 'Ticker 04 Settings')
+amount4 = input.int(8500, "Total volume", minval=1, maxval=10000000, step=1000,group= 'Ticker 04 Settings')
+Divided4 = input.int(10, 'Volume x Pair 4', minval=1, maxval=10000,group= 'Ticker 04 Settings')
+bgColor4 = input.color(color.new(#afcff7, 0), "Background Color",group= 'Ticker 04 Settings')
+Warning_Color_ticker_04 = input.color(color.new(#aaacb4, 0), "Warning Color",group= 'Ticker 04 Settings')
+
+arrVolume4  = request.security_lower_tf(Ticker_04, i_res4, volume, false)
+arrClose4  = request.security_lower_tf(Ticker_04, i_res4, close, false)
+arrOpen4  = request.security_lower_tf(Ticker_04, i_res4, open, false)
+
+T1   = nz(request.security(Ticker_01, "", ((volume[false ? 1:0])/Divided1)*1))
+T2   = nz(request.security(Ticker_02, "", ((volume[false ? 1:0])/Divided2)*1))
+T3   = nz(request.security(Ticker_03, "", ((volume[false ? 1:0])/Divided3)*1))
+T4   = nz(request.security(Ticker_04, "", ((volume[false ? 1:0])/Divided4)*1))
+
+green =  color.new(color.green, 50)
+volBuildColor =  color.new(color.orange, 50)
+red =  color.new(color.red, 50)
+[plus, minus, adx] = ta.dmi(1, 1)
+
+if plus > minus
+    volBuildColor := green
+else
+    volBuildColor := red
+
+vol = ta.median(volume, 1000)
+volCurrent = ta.median(volume, 1000)
+upSpike = false
+downSpike = false
+
+if volume > vol*3 and plus > minus
+    upSpike := true
+else if volume > vol*3 and minus > plus
+    downSpike := true
+
+volBuild = false
+currentMedian = ta.median(volume, 5)
+volLine = ta.sma(volume, 20)
+maUp = false
+
+if currentMedian > volCurrent*3 or volLine > volLine[1] and volLine[1] > volLine[2] and volLine[2] > volLine[3]
+    volBuild := true
+
+//----------Ticker 01-----------//
+t1vol = request.security(Ticker_01, "", volume)
+t1volmedian = ta.median(t1vol, 1000)
+t1price = request.security(Ticker_01, "", close)
+t1spike = false
+if t1vol > t1volmedian*3
+    t1spike := true
+t1volma = ta.sma(t1vol, 20)
+t1volbuild = false
+if t1volma > t1volma[1] and t1volma[1] > t1volma[2] and t1volma[2] > t1volma[3]
+    t1volbuild := true
+
+ticker1bg = bgColor 
+if t1spike or t1volbuild
+    ticker1bg := Warning_Color_ticker_01
+
+Ticker_01_text_size = TextSize3
+if t1spike or t1volbuild
+    Ticker_01_text_size:=TextSize3
+
+//----------Ticker 02-----------//
+t2vol = request.security(Ticker_02, "", volume)
+t2volmedian = ta.median(t2vol, 1000)
+t2price = request.security(Ticker_02, "", close)
+t2spike = false
+if t2vol > t2volmedian*3
+    t2spike := true
+t2volma = ta.sma(t2vol, 20)
+t2volbuild = false
+if t2volma > t2volma[1] and t2volma[1] > t2volma[2] and t2volma[2] > t2volma[3]
+    t2volbuild := true
+
+ticker2bg = bgColor2
+if t2spike or t2volbuild
+    ticker2bg := Warning_Color_ticker_02
+
+Ticker_02_text_size = TextSize3
+if t2spike or t2volbuild
+    Ticker_02_text_size:=TextSize3
+    
+//----------Ticker 03-----------//
+t3vol = request.security(Ticker_03, "", volume)
+t3volmedian = ta.median(t3vol, 1000)
+t3price = request.security(Ticker_03, "", close)
+t3spike = false
+if t3vol > t3volmedian*3
+    t3spike := true
+t3volma = ta.sma(t3vol, 20)
+t3volbuild = false
+if t3volma > t3volma[1] and t3volma[1] > t3volma[2] and t3volma[2] > t3volma[3]
+    t3volbuild := true
+
+ticker3bg = bgColor3
+if t3spike or t3volbuild
+    ticker3bg := Warning_Color_ticker_03
+
+Ticker_03_text_size = TextSize3
+if t3spike or t3volbuild
+    Ticker_03_text_size:=TextSize3
+    
+//----------Ticker 04-----------//
+t4vol = request.security(Ticker_04, "", volume)
+t4volmedian = ta.median(t4vol, 1000)
+t4price = request.security(Ticker_04, "", close)
+t4spike = false
+if t4vol > t4volmedian*3
+    t4spike := true
+t4volma = ta.sma(t4vol, 20)
+t4volbuild = false
+if t4volma > t4volma[1] and t4volma[1] > t4volma[2] and t4volma[2] > t4volma[3]
+    t4volbuild := true
+
+ticker4bg = bgColor4
+if t4spike or t4volbuild
+    ticker4bg := Warning_Color_ticker_04
+
+Ticker_04_text_size = TextSize3
+if t4spike or t4volbuild
+    Ticker_04_text_size:=TextSize3
+
+show_on_5 = timeframe.period == '5' or timeframe.period == '1'or timeframe.period == '3'or timeframe.period == '4'
+dayof = dayofweek == 1 ? "Monday" : dayofweek == 2 ? "Tuesday" : dayofweek == 3 ? "Wednesday" : dayofweek == 4 ? "Thursday" : dayofweek == 5 ? "Friday" : dayofweek == 6 ? "Saturday" : dayofweek == 7 ? "Sunday" : na
+
+
+large_vol_warning_ticker01 = T1 > major_vol_ticker01_warning_amount ? ' | Huge'  : na
+large_vol_warning_ticker02 = T2 > major_vol_ticker02_warning_amount ? ' | Huge'  : na
+large_vol_warning_ticker03 = T3 > major_vol_ticker03_warning_amount ? ' | Huge'  : na
+large_vol_warning_ticker04 = T4 > major_vol_ticker04_warning_amount ? ' | Huge'  : na
+
+trans_p =color.new(color.white,100)
+//----------Ticker 01-----------//
+var int myInc = 0
+myInc := 0
+arrDisplay = array.new_float(0,0)
+arrDisplayClose = array.new_float(0,0)
+arrDisplayOpen = array.new_float(0,0)
+for index in arrVolume 
+    if index > amount and show1 and show_on_5
+        if array.size(arrDisplay)<1
+            array.push(arrDisplay, math.round(array.get(arrVolume,myInc)))
+            array.push(arrDisplayClose, array.get(arrClose,myInc))
+            array.push(arrDisplayOpen, array.get(arrOpen,myInc))
+            box_n_w1 = box.new(left=time, top=math.round(array.get(arrClose,myInc)), right=time + ((100000) * Box_exp_T_01), bottom=math.round(array.get(arrOpen,myInc)), xloc=xloc.bar_time, border_color=bgColor, border_width=1, bgcolor=trans_p)
+            box.set_text_color(box_n_w1, color.white)
+            box.set_text_size(box_n_w1, size.tiny)
+            box.delete(box_n_w1[15])
+            Ticker_01_Mid=(math.round(array.get(arrClose,myInc))+math.round(array.get(arrOpen,myInc)))/2
+            Ticker_01_line=line.new(time,Ticker_01_Mid, time + ((1000000) * Line_exp_T_01),Ticker_01_Mid,xloc=xloc.bar_time,style=line.style_solid, color=bgColor, width=1)
+            line.delete(Ticker_01_line[15])
+            myInc +=1
+            
+            kop1=show_vol_info ? label.new(time + ((1000000) * Line_exp_T_01),Ticker_01_Mid,str.tostring(Ticker_01_Mid, format.mintick) + str.tostring(large_vol_warning_ticker01), xloc=xloc.bar_time, size=TextSize3 ,color=borderColor, textcolor=bgColor,style=label.style_label_left):na
+            label.delete(kop1[15])
+            label.set_tooltip(kop1,"Exchange: "+str.tostring(Ticker_01) +" on " + "M" + str.tostring(timeframe.period) +"\nVolume: " + str.tostring(T1, format.mintick)+'K'+ "\nHuge vol threshold set to: " + str.tostring(major_vol_ticker01_warning_amount)+'.0K')
+            
+//----------Ticker 02-----------//           
+var int myInc2 = 0
+myInc2 := 0
+arrDisplay2 = array.new_float(0,0)
+arrDisplayClose2 = array.new_float(0,0)
+arrDisplayOpen2 = array.new_float(0,0)
+for index2 in arrVolume2
+    if index2 > amount2 and show2 and show_on_5
+        if array.size(arrDisplay2)<1
+            array.push(arrDisplay2, math.round(array.get(arrVolume2,myInc2)))
+            array.push(arrDisplayClose2, array.get(arrClose2,myInc2))
+            array.push(arrDisplayOpen2, array.get(arrOpen2,myInc2))
+            box_n_w2 = box.new(left=time, top=math.round(array.get(arrClose2,myInc2)), right=time + ((100000) * Box_exp_T_02), bottom=math.round(array.get(arrOpen2,myInc2)), xloc=xloc.bar_time, border_color=bgColor2, border_width=1, bgcolor=trans_p)
+            box.set_text_color(box_n_w2, color.white)
+            box.set_text_size(box_n_w2, size.tiny)
+            box.delete(box_n_w2[15])
+            Ticker_02_Mid=(math.round(array.get(arrClose2,myInc2))+math.round(array.get(arrOpen2,myInc2)))/2
+            Ticker_02_line=line.new(time,Ticker_02_Mid, time + ((1000000) * Line_exp_T_02),Ticker_02_Mid,xloc=xloc.bar_time,style=line.style_solid, color=bgColor2)
+            line.delete(Ticker_02_line[15])
+            myInc2 +=1   
+            kop2=show_vol_info2 ? label.new(time + ((1000000) * Line_exp_T_02),Ticker_02_Mid,str.tostring(Ticker_02_Mid, format.mintick) + str.tostring(large_vol_warning_ticker02), xloc=xloc.bar_time, size=TextSize3 ,color=borderColor, textcolor=bgColor2,style=label.style_label_left):na
+            label.delete(kop2[15])
+            label.set_tooltip(kop2,"Exchange: "+str.tostring(Ticker_02) +" on " + "M" + str.tostring(timeframe.period) +"\nVolume: " + str.tostring(T2, format.mintick)+'K'+ "\nHuge vol threshold set to: " + str.tostring(major_vol_ticker02_warning_amount)+'.0K')
+            
+//----------Ticker 03-----------//       
+var int myInc3 = 0
+myInc3 := 0
+arrDisplay3 = array.new_float(0,0)
+arrDisplayClose3 = array.new_float(0,0)
+arrDisplayOpen3 = array.new_float(0,0)
+for index3 in arrVolume3
+    if index3 > amount3 and show3 and show_on_5
+        if array.size(arrDisplay3)<1
+            array.push(arrDisplay3, math.round(array.get(arrVolume3,myInc3)))
+            array.push(arrDisplayClose3, array.get(arrClose3,myInc3))
+            array.push(arrDisplayOpen3, array.get(arrOpen3,myInc3))
+            box_n_w3 = box.new(left=time, top=math.round(array.get(arrClose3,myInc3)), right=time + ((100000) * Box_exp_T_03), bottom=math.round(array.get(arrOpen3,myInc3)), xloc=xloc.bar_time, border_color=bgColor3, border_width=1, bgcolor=trans_p)
+            box.set_text_color(box_n_w3, color.white)
+            box.set_text_size(box_n_w3, size.tiny)
+            box.delete(box_n_w3[15])
+            Ticker_03_Mid=(math.round(array.get(arrClose3,myInc3))+math.round(array.get(arrOpen3,myInc3)))/2   
+            Ticker_03_line=line.new(time,Ticker_03_Mid, time + ((1000000)* Line_exp_T_03),Ticker_03_Mid,xloc=xloc.bar_time,style=line.style_solid, color=bgColor3)
+            line.delete(Ticker_03_line[15])
+            myInc3 +=1
+            kop3=show_vol_info3 ? label.new(time + ((1000000) * Line_exp_T_03),Ticker_03_Mid,str.tostring(Ticker_03_Mid, format.mintick) + str.tostring(large_vol_warning_ticker03), xloc=xloc.bar_time, size=TextSize3 ,color=borderColor, textcolor=bgColor3,style=label.style_label_left):na
+            label.delete(kop3[15])
+            label.set_tooltip(kop3,"Exchange: "+str.tostring(Ticker_03) +" on " + "M" + str.tostring(timeframe.period) +"\nVolume: " + str.tostring(T3, format.mintick)+'K'+ "\nHuge vol threshold set to: " + str.tostring(major_vol_ticker03_warning_amount)+'.0K')
+
+//----------Ticker 04-----------//      
+var int myInc4 = 0
+myInc4 := 0
+arrDisplay4 = array.new_float(0,0)
+arrDisplayClose4 = array.new_float(0,0)
+arrDisplayOpen4 = array.new_float(0,0)
+for index4 in arrVolume4
+    if index4 > amount4 and show4 and show_on_5
+        if array.size(arrDisplay4)<1
+            array.push(arrDisplay4, math.round(array.get(arrVolume4,myInc4)))
+            array.push(arrDisplayClose4, array.get(arrClose4,myInc4))
+            array.push(arrDisplayOpen4, array.get(arrOpen4,myInc4))
+            box_n_w4 = box.new(left=time, top=math.round(array.get(arrClose4,myInc4)), right=time + ((100000) * Box_exp_T_04), bottom=math.round(array.get(arrOpen4,myInc4)), xloc=xloc.bar_time, border_color=bgColor4, border_width=1, bgcolor=trans_p)
+            box.set_text_color(box_n_w4, color.white)
+            box.set_text_size(box_n_w4, size.tiny)
+            box.delete(box_n_w4[15])
+            Ticker_04_Mid=(math.round(array.get(arrClose4,myInc4))+math.round(array.get(arrOpen4,myInc4)))/2
+            Ticker_04_line=line.new(time,Ticker_04_Mid, time + ((1000000) * Line_exp_T_04),Ticker_04_Mid,xloc=xloc.bar_time,style=line.style_solid, color=bgColor4)
+            line.delete(Ticker_04_line[15])
+            myInc4 +=1            
+            kop4=show_vol_info4 ? label.new(time + ((1000000) * Line_exp_T_04),Ticker_04_Mid,str.tostring(Ticker_04_Mid, format.mintick) + str.tostring(large_vol_warning_ticker04), xloc=xloc.bar_time, size=TextSize3 ,color=borderColor, textcolor=bgColor4,style=label.style_label_left):na
+            label.delete(kop4[15])
+            label.set_tooltip(kop4,"Exchange: "+str.tostring(Ticker_04) +" on " + "M" + str.tostring(timeframe.period) +"\nVolume: " + str.tostring(T4, format.mintick)+'K'+ "\nHuge vol threshold set to: " + str.tostring(major_vol_ticker04_warning_amount)+'.0K')
