@@ -12,10 +12,10 @@ Locates Mondays and extend through Tuesday. Shows Opening range and warning when
 ![description](./assets/monday_script_v2/description.png?raw=true)
 
 # Updates
-- [Update 1](#update1)
-- [Update 2](#update2)
-- [Update 3](#update3)
-- [Update 4](#update4)
+- [Update 1](#update-1)
+- [Update 2](#update-2)
+- [Update 3](#update-3)
+- [Update 4](#update-4)
 
  ## Update 1
 
