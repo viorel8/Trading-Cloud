@@ -33,17 +33,16 @@
 
 	### Details and Revisions
 	
-	<p align="left">
-		<img  width="16" src="./general/assets/cursor-hand-icon.png">
-		<a href="doc/jo-pippin/monday_script_v2.md" >WebHook backend setup</a>
-	</p>
-	
-	</br>
-	
 	- details how to configurate the indicator
 	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
 	- code snipets designed to show you how the indicator works.
-	- Trading View indicator reference
+	- Trading View indicator reference	
+	</br>
+	
+		<p align="left">
+		<img  width="16" src="./general/assets/cursor-hand-icon.png">
+		<a href="doc/jo-pippin/monday_script_v2.md" > More Details ... </a>
+	</p>
 	
 	</br>
 	
