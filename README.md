@@ -17,27 +17,19 @@
 # Table of contents
 - [Table of contents](#table-of-contents)
   - [Monday Script (ONLY CRYPTO) V1 No vol or OI](#monday-script-v1)  
-  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v1)  
+  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v2)  
   
   
   ## Monday Script V1	
-	<h4 align="left">
-		Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
-	</h4>
-	<p align="center">
-		doc ref to md
-		![Monday Script V1](./doc/jo-pippin/monday_script_v1.md "Monday Script V1")
-		a ref to md
-		<a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
-		
-		doc red to image
-		![Monday Script V1](.doc/jo-pippin/assets/monday_script_v1/description.png?raw=true "Monday Script V1")
-		
-		img ref
-		<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
-		
-	</p>	
-	
+	### Description
+	Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
+
+	![Monday Script v1 Description](doc/jo-pippin/assets/monday_script_v1description.png?raw=true "Monday Script v1 Description")
+	<img src="doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
+
+	### Details
+	![Monday Script v1 Details](./doc/jo-pippin/monday_script_v2.md "Monday Script v1 Details")
+
   ## Monday Script V2	
 	<h4 align="left">
 		Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
