@@ -113,12 +113,12 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;	
 
-  ## Monday Scirpt V4
+  ## Monday Script V4
 	
    ### Description
-   
-    * introducing alers 
-    * Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+	
+    - introducing alers 
+    - Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle.
 	
    ### Indicator preview
 	
@@ -126,10 +126,10 @@
 
    ### Details and Revisions
 	
-	- details how to configurate the indicator
-	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
-	- code snipets designed to show you how the indicator works.
-	- Trading View indicator reference	
+    - details how to configurate the indicator
+    - you will learn how to use this indicator in ordwe to create a basic trading strategy.
+    - code snipets designed to show you how the indicator works.
+    - Trading View indicator reference	
 	
 	
 	<p align="left">
