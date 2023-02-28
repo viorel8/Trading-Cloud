@@ -26,9 +26,18 @@
 	
 	* Locates Mondays and extend through Tuesday. 
 	* Shows Opening range and warning when Monday H/L is breached on Tuesday 
+
+	###Indicator preview
+	<p align="center">
+	  <img width="600" src="doc/jo-pippin/assets/monday_script_v1/description.png" alt="Monday Script (ONLY CRYPTO) V1" >
+	</p>
+
+	###Details and Revisions
+	<p align="left">
+		<img  width="64" src="./general/assets/cursor-hand-icon.png">
+		<a href="https://github.com/damikun/trouble-training/blob/main/Doc/WebHookBackend.md" >WebHook backend setup</a></br>
+	</p>
 	
-	- Indicator preview 
-		![Monday Script (ONLY CRYPTO) V1](doc/jo-pippin/assets/monday_script_v1/description.png "Monday Script (ONLY CRYPTO) V1")
 	- Details
 		![More details and the updates](doc/jo-pippin/monday_script_v1.md "More details and the updates")	
 	
