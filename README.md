@@ -25,12 +25,17 @@
 		Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
 	</h4>
 	<p align="center">
-		![Idnetity server with BFF flow](./doc/jo-pippin/monday_script_v1.md "Monday Script (ONLY CRYPTO) V1 No vol or OI")
+		doc ref to md
+		![Monday Script V1](./doc/jo-pippin/monday_script_v1.md "Monday Script V1")
+		a ref to md
 		<a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
 		
-		![Idnetity server with BFF flow](./assets/monday_script_v1/description.png?raw=true "Indicator general description")
+		doc red to image
+		![Monday Script V1](.doc/jo-pippin/assets/monday_script_v1/description.png?raw=true "Monday Script V1")
+		
+		img ref
 		<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
-		<a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
+		
 	</p>	
 	
   ## Monday Script V2	
