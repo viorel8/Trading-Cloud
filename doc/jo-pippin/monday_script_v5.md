@@ -8,9 +8,7 @@ Locates Mondays and extend through Tuesday. Shows Opening range and warning when
 ![description](./assets/monday_script_v5/description.png?raw=true)
 
 # Updates
-- [Update 1](#update1)
-- [Update 2](#update2)
-- [Update 3](#update3)
+- [Update 1](#update-1)
 
  ## Update 1
 
