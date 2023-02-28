@@ -33,7 +33,7 @@ added option to extend monday opening range to the end of the week
 		<a href="./scripts/jo-pippin/monday_script_v1.pine" > <b> More Details ... </b> </a>
 	</p>
 
-# Code Snippets 
+# Code Snippets
 
 ```pine
 
