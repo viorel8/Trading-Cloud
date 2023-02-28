@@ -19,17 +19,18 @@
 # Monday Script
 
  ## Monday Script V1 
-	
+ 
   ### Description
-	
+  
     * Locates Mondays and extend through Tuesday. 
 	* Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
   ### Indicator preview	
+  
   ![Monday Script (ONLY CRYPTO) V1](doc/jo-pippin/assets/monday_script_v1/description.png)
 
   ### Details and Revisions
-	
+  
     * details how to configurate the indicator
     * you will learn how to use this indicator in ordwe to create a basic trading strategy.
     * code snipets designed to show you how the indicator works.
@@ -59,6 +60,7 @@
 	* Shows max vol since the week started.
 	
    ### Indicator preview
+   
    ![Monday Script (ONLY CRYPTO) V2](doc/jo-pippin/assets/monday_script_v2/description.png)
 
    ### Details and Revisions
@@ -114,12 +116,13 @@
   ## Monday Scirpt V4
 	
    ### Description
+   
     * introducing alers 
     * Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	
    ### Indicator preview
 	
-	![Monday Script (ONLY CRYPTO) V4](doc/jo-pippin/assets/monday_script_v4/description.png)
+   ![Monday Script (ONLY CRYPTO) V4](doc/jo-pippin/assets/monday_script_v4/description.png)
 
    ### Details and Revisions
 	
@@ -150,7 +153,7 @@
 	
    ### Indicator preview
 	
-	![Monday Script (ONLY CRYPTO) V5](doc/jo-pippin/assets/monday_script_v5/description.png)
+   ![Monday Script (ONLY CRYPTO) V5](doc/jo-pippin/assets/monday_script_v5/description.png)
 
    ### Details and Revisions
 	
