@@ -27,6 +27,7 @@ added option to extend monday opening range to the end of the week
 ![update3](./assets/monday_script_v1/update_03.png)
 
 # Details
+
     <p align="left">
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
