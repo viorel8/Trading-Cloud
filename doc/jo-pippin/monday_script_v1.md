@@ -26,13 +26,16 @@ added option to extend monday opening range to the end of the week
 
 ![update3](./assets/monday_script_v1/update_03.png)
 
-# Details
+# Download
+* code reference
 
     <p align="left">
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
 		<a href="./scripts/jo-pippin/monday_script_v1.pine" > <b> More Details ... </b> </a>
 	</p>
+
+* Trading View reference 
 
 # Code Snippets
 
