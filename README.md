@@ -47,6 +47,16 @@
 	
 	</br>
 	
+* Download	
+	
+    <p align="left">
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
+		&nbsp;
+		<a href="./scripts/jo-pippin/monday_script_v1.pine" > <b> Download ... </b> </a>
+	</p>
+
+* Trading View reference 	
+	
 	> &#10240;
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;
