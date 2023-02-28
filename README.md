@@ -22,7 +22,7 @@
 	
   ### Description
 	
-	* Locates Mondays and extend through Tuesday. 
+    * Locates Mondays and extend through Tuesday. 
 	* Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
   ### Indicator preview	
@@ -30,13 +30,13 @@
 
   ### Details and Revisions
 	
-	* details how to configurate the indicator
-	* you will learn how to use this indicator in ordwe to create a basic trading strategy.
-	* code snipets designed to show you how the indicator works.
-	* Trading View indicator reference	
+    * details how to configurate the indicator
+    * you will learn how to use this indicator in ordwe to create a basic trading strategy.
+    * code snipets designed to show you how the indicator works.
+    * Trading View indicator reference	
 	
 	
-	<p align="left">
+    <p align="left">
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
 		<a href="doc/jo-pippin/monday_script_v1.md" > <b> More Details ... </b> </a>
@@ -63,10 +63,10 @@
 
    ### Details and Revisions
 	
-	- details how to configurate the indicator
-	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
-	- code snipets designed to show you how the indicator works.
-	- Trading View indicator reference	
+    * details how to configurate the indicator
+    * you will learn how to use this indicator in ordwe to create a basic trading strategy.
+    * code snipets designed to show you how the indicator works.
+    * Trading View indicator reference	
 	
 	
 	<p align="left">
@@ -93,10 +93,10 @@
 
    ### Details and Revisions
 	
-	- details how to configurate the indicator
-	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
-	- code snipets designed to show you how the indicator works.
-	- Trading View indicator reference	
+    * details how to configurate the indicator
+    * you will learn how to use this indicator in ordwe to create a basic trading strategy.
+    * code snipets designed to show you how the indicator works.
+    * Trading View indicator reference	
 	
 	
 	<p align="left">
@@ -114,8 +114,8 @@
   ## Monday Scirpt V4
 	
    ### Description
-	* introducing alers 
-	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+    * introducing alers 
+    * Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	
    ### Indicator preview
 	
@@ -145,8 +145,8 @@
 	
    ### Description
 	
-	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
-	* Added alerts and auto trade setup and poc zone with ob.
+    * Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+    * Added alerts and auto trade setup and poc zone with ob.
 	
    ### Indicator preview
 	
