@@ -8,6 +8,6 @@
 
 <h5 align="center" >
 
-  <a href="https://github.com/viorel8/Trading-Cloud/tree/main/doc/monday_script_v1.md" >monday_script_v1</a></br>
-  <a href="https://github.com/viorel8/Trading-Cloud/tree/main/doc/monday_script_v2.md" >monday_script_v2</a></br>
+  <a href="https://github.com/viorel8/Trading-Cloud/blob/731c115333e1985edc6aa2699664334efdc2a04b/doc/jo-pippin/monday_script_v1.md" >monday_script_v1</a></br>
+  <a href="./doc/jo-pippin/monday_script_v1.md" >monday_script_v2</a></br>
 </br>
