@@ -1,32 +1,13 @@
-# Summary 
-Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
+ # Summary 
+ Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
-# Indicator overview
-* Locates Mondays and extend through Tuesday. 
-* Shows Opening range and warning when Monday H/L is breached on Tuesday 
+ # Indicator overview
+ * Locates Mondays and extend through Tuesday. 
+ * Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
-![description](./assets/monday_script_v3/description.png?raw=true)
+ ![description](./assets/monday_script_v3/description.png?raw=true)
 
-# Updates
-- [Update 1](#update1)
-- [Update 2](#update2)
-- [Update 3](#update3)
-
-## Update 1
-
-* Added option to extend monday opening range to the end of the week.
-
-![update1](./assets/monday_script_v3/update_01.png)
-
-## Update 2
-
-![update2](./assets/monday_script_v3/update_02.png)
-
-## Update 3
-
-![update3](./assets/monday_script_v3/update_03.png)
-
-## Code Snippets 
+# Code Snippets 
 
 ```pine
 

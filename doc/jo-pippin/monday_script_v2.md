@@ -15,27 +15,32 @@ Locates Mondays and extend through Tuesday. Shows Opening range and warning when
 - [Update 1](#update1)
 - [Update 2](#update2)
 - [Update 3](#update3)
+- [Update 4](#update4)
 
-## Update 1
+ ## Update 1
 
-* Added option to extend monday opening range to the end of the week.
+ * Added option to extend monday opening range to the end of the week.
 
-![update1](./assets/monday_script_v2/update_01.png)
+ ![update1](./assets/monday_script_v2/update_01.png)
 
-## Update 2
+ ## Update 2
 
-* Optimized code so will run a tad faster, added a daily  side candle and added an alert for when OI rise, fall or a spike in volume shifts to the current bar (in testing and got a error on the M3 but seems to work 100% on the M5) . 
-* To use the alert simply be on the M5 and right click on the indicator and select  “Add alert on Mondays | Opens” and click on “Create”. 
-* The alert should notify each element separately as in the code attached. 
-* Also made the script to only show detail on the M3 -M15, it will show only Monday Opening range and Mondays on anything higher than the M15, nfortunately only compatible with crypto atm. 
+ * Optimized code so will run a tad faster, added a daily  side candle and added an alert for when OI rise, fall or a spike in volume shifts to the current bar (in testing and got a error on the M3 but seems to work 100% on the M5) . 
+ * To use the alert simply be on the M5 and right click on the indicator and select  “Add alert on Mondays | Opens” and click on “Create”. 
+ * The alert should notify each element separately as in the code attached. 
+ * Also made the script to only show detail on the M3 -M15, it will show only Monday Opening range and Mondays on anything higher than the M15, nfortunately only compatible with crypto atm. 
 
-![update2](./assets/monday_script_v2/update_02.png)
+ ![update2](./assets/monday_script_v2/update_02.png)
 
-## Update 3
+ ## Update 3
 
-![update3](./assets/monday_script_v2/update_03.png)
+ ![update3](./assets/monday_script_v2/update_03.png)
 
-## Code Snippets 
+ ## Update 4
+
+ ![update3](./assets/monday_script_v2/update_04.png)
+
+# Code Snippets 
 
 ```pine
 

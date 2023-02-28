@@ -12,21 +12,21 @@ Locates Mondays and extend through Tuesday. Shows Opening range and warning when
 - [Update 2](#update2)
 - [Update 3](#update3)
 
-## Update 1
+ ## Update 1
 
-* Added option to extend monday opening range to the end of the week.
+ * Added option to extend monday opening range to the end of the week.
 
-![update1](./assets/monday_script_v1/update_01.png)
+ ![update1](./assets/monday_script_v1/update_01.png)
 
-## Update 2
+ ## Update 2
 
-![update2](./assets/monday_script_v1/update_02.png)
+ ![update2](./assets/monday_script_v1/update_02.png)
 
-## Update 3
+ ## Update 3
 
-![update3](./assets/monday_script_v1/update_03.png)
+ ![update3](./assets/monday_script_v1/update_03.png)
 
-## Code Snippets 
+# Code Snippets 
 
 ```pine
 
