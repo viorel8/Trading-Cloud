@@ -40,7 +40,7 @@
 	
 	
 	<p align="left">
-		<img  width="32" src="./general/assets/cursor-hand-icon.png"> 
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp; &nbsp;
 		<a href="doc/jo-pippin/monday_script_v2.md" > <b> More Details ... </b> </a>
 	</p>
