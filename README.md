@@ -9,18 +9,17 @@
 
 
 # Available Indicators 
-- [Available Indicators] (#available-indicators)
-	On this section you will get a descriptive graphical visualization of all the indicators that we are developing, with their respected updates
 
-# Table of contents
-- [Table of contents](#table-of-contents)
-  - [Monday Script (ONLY CRYPTO) V1 No vol or OI](#monday-script-v1)  
-  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v2) 
-  - [Monday Script (ONLY CRYPTO) V3 No vol or OI](#monday-script-v3)  
-  - [Monday Script (ONLY CRYPTO) V4 No vol or OI](#monday-script-v4) 
-  - [Monday Script (ONLY CRYPTO) V5 No vol or OI](#monday-script-v5)   
-  
-  ## Monday Script (ONLY CRYPTO) V1 No vol or OI  |  Runs fast 
+- [Monday Script](#monday-script)	
+	- [Monday Script (ONLY CRYPTO) V1](#monday-script-v1)  
+	- [Monday Script (ONLY CRYPTO) V2](#monday-script-v2) 
+	- [Monday Script (ONLY CRYPTO) V3](#monday-script-v3)  
+	- [Monday Script (ONLY CRYPTO) V4](#monday-script-v4) 
+	- [Monday Script (ONLY CRYPTO) V5](#monday-script-v5)   
+
+# Monday Script 
+
+  ## Monday Script (ONLY CRYPTO) V1
 	
 	### Description
 	
@@ -115,10 +114,10 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;	
 
-  ## Monday Script (ONLY CRYPTO) V4  Max vol and OI   |  Runs slow
+  ## Monday Scirpt (ONLY CRYPTO) V4 LTF Poc on HTF Max vol (only volume no OI)  |   Runs ok Alerts 
 	
 	### Description
-	
+	* introducing alers 
 	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	
 	### Indicator preview
@@ -145,7 +144,7 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;	
 	
-  ## Monday Script (ONLY CRYPTO) V5  Max vol and OI   |  Runs slow
+  ## Monday Scirpt (ONLY CRYPTO) V5 LTF Poc on HTF Max vol (only volume no OI)  |   Runs ok Alerts 
 	
 	### Description
 	
