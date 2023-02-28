@@ -4,13 +4,13 @@
 
 # Table of contents
 - [Table of contents](#table-of-contents)
-  - [Indicator overview](#indicator-overview)  
+  - [Indicator overview](#indicator-overview)
   - [Feature description](#feature-description)
   - [Update](#feature-updates)
   - [Comments and planning](#comments)
 
 ## Indicator overview
-![Idnetity server with BFF flow](./assets/monday_script_v1/description.png?raw=true "Indicator general description")
+![Idnetity server with BFF flow](./Assets/monday_script_v1/description.png "Indicator general description")
 
 Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
