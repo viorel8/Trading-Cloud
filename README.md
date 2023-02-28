@@ -9,13 +9,14 @@
 
 
 # Available Indicators 
-*[Monday Script](#monday-script)	
- * [Monday Script V1](#monday-script-v1)  
- * [Monday Script V2](#monday-script-v2) 
- * [Monday Script V3](#monday-script-v3)  
- * [Monday Script V4](#monday-script-v4) 
- * [Monday Script V5](#monday-script-v5)   
-
+ -[Monday Script](#monday-script)	
+   * [Monday Script V1](#monday-script-v1)  
+   * [Monday Script V2](#monday-script-v2) 
+   * [Monday Script V3](#monday-script-v3)  
+   * [Monday Script V4](#monday-script-v4) 
+   * [Monday Script V5](#monday-script-v5)   
+ -[Medians](#medians)
+ 
 # Monday Script
 
 ## Monday Script V1
