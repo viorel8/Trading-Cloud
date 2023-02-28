@@ -8,12 +8,11 @@
 <p align="center" > The site contains indicators created by Jo Pepin and Vio. The code is intendes as a common framework for testing and developing TradingView Pinescript Indicators. </p>
 
 
-**Available Indicators**
 
-On this section you will get a descriptive graphical visualization of all the indicators that we are developing, with their respected updates
 
-# Description 
-- [Description] (#script-description)
+# Available Indicators 
+- [Available Indicators] (#available-indicators)
+	On this section you will get a descriptive graphical visualization of all the indicators that we are developing, with their respected updates
 
 # Table of contents
 - [Table of contents](#table-of-contents)
@@ -31,7 +30,7 @@ On this section you will get a descriptive graphical visualization of all the in
   
 
 
-<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Elastic Frontend to backend distributed tracing" >
+<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
 ![Idnetity server with BFF flow](./assets/monday_script_v1/description.png?raw=true "Indicator general description")
 
 </p>
