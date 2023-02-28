@@ -27,12 +27,14 @@
 	* Locates Mondays and extend through Tuesday. 
 	* Shows Opening range and warning when Monday H/L is breached on Tuesday 
 	
-	![Image](doc/jo-pippin/assets/monday_script_v1/description.png "Image")
+	- Indicator preview 
+		![Monday Script (ONLY CRYPTO) V1](doc/jo-pippin/assets/monday_script_v1/description.png "Monday Script (ONLY CRYPTO) V1")
+	- Details
+		![More details and the updates](doc/jo-pippin/monday_script_v1.md "More details and the updates")	
 	
-	### Details and Revisions
-	![Details and Revisions](doc/jo-pippin/monday_script_v1.md "Details and Revisions")	
-	
-	
+	> &#10240;
+	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
+	> &#10240;
 
   ## Monday Script (ONLY CRYPTO) V2  Max vol and OI   |  Runs slow
 	
@@ -44,7 +46,7 @@
 	* Shows highest % rise and fall in OI from the current week’s open. 
 	* Shows max vol since the week started.
 	
-	![Image](doc/jo-pippin/assets/monday_script_v2/description.png "Image")
+	![Monday Script (ONLY CRYPTO) V2](doc/jo-pippin/assets/monday_script_v2/description.png "IMonday Script (ONLY CRYPTO) V2")
 	
 	### Details and Revisions
 	![Details and Revisions](doc/jo-pippin/monday_script_v2.md "Details and Revisions")	
