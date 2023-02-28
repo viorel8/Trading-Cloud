@@ -21,14 +21,13 @@
   
   
   ## Monday Script V1	
-	### Description
-	Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
+	### Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
-	![Monday Script v1 Description](doc/jo-pippin/assets/monday_script_v1description.png?raw=true "Monday Script v1 Description")
+	![Details](doc/jo-pippin/monday_script_v1.md "Details")
 	<img src="doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
-
+	![Image](doc/jo-pippin/assets/monday_script_v1/description.png "Image")
 	### Details
-	![Monday Script v1 Details](./doc/jo-pippin/monday_script_v2.md "Monday Script v1 Details")
+	
 
   ## Monday Script V2	
 	<h4 align="left">
