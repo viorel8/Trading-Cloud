@@ -8,8 +8,6 @@
 <p align="center" > The site contains indicators created by Jo Pepin and Vio. The code is intendes as a common framework for testing and developing TradingView Pinescript Indicators. </p>
 
 
-
-
 # Available Indicators 
 - [Available Indicators] (#available-indicators)
 	On this section you will get a descriptive graphical visualization of all the indicators that we are developing, with their respected updates
@@ -17,8 +15,10 @@
 # Table of contents
 - [Table of contents](#table-of-contents)
   - [Monday Script (ONLY CRYPTO) V1 No vol or OI](#monday-script-v1)  
-  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v2)  
-  
+  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v2) 
+  - [Monday Script (ONLY CRYPTO) V3 No vol or OI](#monday-script-v3)  
+  - [Monday Script (ONLY CRYPTO) V4 No vol or OI](#monday-script-v4) 
+  - [Monday Script (ONLY CRYPTO) V5 No vol or OI](#monday-script-v5)   
   
   ## Monday Script (ONLY CRYPTO) V1 No vol or OI  |  Runs fast 
 	
@@ -42,7 +42,7 @@
 	<p align="left">
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
-		<a href="doc/jo-pippin/monday_script_v2.md" > <b> More Details ... </b> </a>
+		<a href="doc/jo-pippin/monday_script_v1.md" > <b> More Details ... </b> </a>
 	</p>
 	
 	</br>
@@ -61,7 +61,117 @@
 	* Shows highest % rise and fall in OI from the current week’s open. 
 	* Shows max vol since the week started.
 	
-	![Monday Script (ONLY CRYPTO) V2](doc/jo-pippin/assets/monday_script_v2/description.png "IMonday Script (ONLY CRYPTO) V2")
+	### Indicator preview
 	
+	![Monday Script (ONLY CRYPTO) V2](doc/jo-pippin/assets/monday_script_v2/description.png)
+
 	### Details and Revisions
-	![Details and Revisions](doc/jo-pippin/monday_script_v2.md "Details and Revisions")	
+	
+	- details how to configurate the indicator
+	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
+	- code snipets designed to show you how the indicator works.
+	- Trading View indicator reference	
+	
+	
+	<p align="left">
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
+		&nbsp;
+		<a href="doc/jo-pippin/monday_script_v2.md" > <b> More Details ... </b> </a>
+	</p>
+	
+	</br>
+	
+	> &#10240;
+	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
+	> &#10240;
+	
+  ## Monday Script (ONLY CRYPTO) V3  Max vol and OI   |  Runs slow
+	
+	### Description
+	
+	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+	
+	### Indicator preview
+	
+	![Monday Script (ONLY CRYPTO) V3](doc/jo-pippin/assets/monday_script_v3/description.png)
+
+	### Details and Revisions
+	
+	- details how to configurate the indicator
+	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
+	- code snipets designed to show you how the indicator works.
+	- Trading View indicator reference	
+	
+	
+	<p align="left">
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
+		&nbsp;
+		<a href="doc/jo-pippin/monday_script_v3.md" > <b> More Details ... </b> </a>
+	</p>
+	
+	</br>
+	
+	> &#10240;
+	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
+	> &#10240;	
+
+  ## Monday Script (ONLY CRYPTO) V4  Max vol and OI   |  Runs slow
+	
+	### Description
+	
+	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+	
+	### Indicator preview
+	
+	![Monday Script (ONLY CRYPTO) V4](doc/jo-pippin/assets/monday_script_v4/description.png)
+
+	### Details and Revisions
+	
+	- details how to configurate the indicator
+	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
+	- code snipets designed to show you how the indicator works.
+	- Trading View indicator reference	
+	
+	
+	<p align="left">
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
+		&nbsp;
+		<a href="doc/jo-pippin/monday_script_v4.md" > <b> More Details ... </b> </a>
+	</p>
+	
+	</br>
+	
+	> &#10240;
+	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
+	> &#10240;	
+	
+  ## Monday Script (ONLY CRYPTO) V5  Max vol and OI   |  Runs slow
+	
+	### Description
+	
+	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
+	* Added alerts and auto trade setup and poc zone with ob.
+	
+	### Indicator preview
+	
+	![Monday Script (ONLY CRYPTO) V5](doc/jo-pippin/assets/monday_script_v5/description.png)
+
+	### Details and Revisions
+	
+	- details how to configurate the indicator
+	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
+	- code snipets designed to show you how the indicator works.
+	- Trading View indicator reference	
+	
+	
+	<p align="left">
+		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
+		&nbsp;
+		<a href="doc/jo-pippin/monday_script_v5.md" > <b> More Details ... </b> </a>
+	</p>
+	
+	</br>
+	
+	> &#10240;
+	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
+	> &#10240;	
