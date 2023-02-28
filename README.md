@@ -17,29 +17,32 @@
 # Table of contents
 - [Table of contents](#table-of-contents)
   - [Monday Script (ONLY CRYPTO) V1 No vol or OI](#monday-script-v1)  
+  - [Monday Script (ONLY CRYPTO) V2 No vol or OI](#monday-script-v1)  
   
   
-  ## Indicators overview
-	![Idnetity server with BFF flow](./doc/jo-pippin/monday_script_v1.md "Monday Script (ONLY CRYPTO) V1 No vol or OI")
+  ## Monday Script V1	
 	<h4 align="left">
 		Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
 	</h4>
 	<p align="center">
+		![Idnetity server with BFF flow](./doc/jo-pippin/monday_script_v1.md "Monday Script (ONLY CRYPTO) V1 No vol or OI")
+		<a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
+		
+		![Idnetity server with BFF flow](./assets/monday_script_v1/description.png?raw=true "Indicator general description")
+		<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
 		<a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
 	</p>	
-  
-
-
-<img src="./doc/jo-pippin/assets/monday_script_v1/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
-![Idnetity server with BFF flow](./assets/monday_script_v1/description.png?raw=true "Indicator general description")
-
-</p>
-	Monday Script (ONLY CRYPTO) V1 No vol or OI </p>
-<br>
-  <a href="./doc/jo-pippin/monday_script_v1.md" >Monday Script (ONLY CRYPTO) V1 No vol or OI </a>
-</br>
-  
-
-![Idnetity server with BFF flow](./doc/jo-pippin/monday_script_v1.md "Indicator general description")
-doc/jo-pippin/monday_script_v1.md
-
+	
+  ## Monday Script V2	
+	<h4 align="left">
+		Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday 
+	</h4>
+	<p align="center">
+		![Idnetity server with BFF flow](./doc/jo-pippin/monday_script_v2.md "Monday Script (ONLY CRYPTO) V2 No vol or OI")
+		<a href="./doc/jo-pippin/monday_script_v2.md" >Monday Script (ONLY CRYPTO) V2 No vol or OI </a>
+		
+		![Idnetity server with BFF flow](./assets/monday_script_v2/description.png?raw=true "Indicator general description")
+		<img src="./doc/jo-pippin/assets/monday_script_v2/description.png" alt="Locates Mondays and extend through Tuesday. Shows Opening range and warning when Monday H/L is breached on Tuesday" >
+		<a href="./doc/jo-pippin/monday_script_v2.md" >Monday Script (ONLY CRYPTO) V2 No vol or OI </a>
+	</p>		
+ 
