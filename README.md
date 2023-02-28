@@ -36,20 +36,13 @@
 * details how to configurate the indicator
 * you will learn how to use this indicator in ordwe to create a basic trading strategy.
 * code snipets designed to show you how the indicator works.
-* Trading View indicator reference	
-	
+* Resorces		
 	
     <p align="left">
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
 		<a href="doc/jo-pippin/monday_script_v1.md" > <b> More Details ... </b> </a>
-	</p>
-	
-	</br>
-	
-* Download	
-	
-    <p align="left">
+
 		<img  width="18" src="./general/assets/cursor-hand-icon.png"> 
 		&nbsp;
 		<a href="./scripts/jo-pippin/monday_script_v1.pine" > <b> Download ... </b> </a>
