@@ -83,17 +83,17 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;
 	
-  ## Monday Script V3
+ ## Monday Script V3
 	
-   ### Description
+  ### Description
 	
 	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	
-   ### Indicator preview
+  ### Indicator preview
 	
 	![Monday Script (ONLY CRYPTO) V3](doc/jo-pippin/assets/monday_script_v3/description.png)
 
-   ### Details and Revisions
+  ### Details and Revisions
 	
 	- details how to configurate the indicator
 	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
@@ -113,17 +113,17 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;	
 
-  ## Monday Scirpt V4
+ ## Monday Scirpt V4
 	
-   ### Description
+  ### Description
 	* introducing alers 
 	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	
-   ### Indicator preview
+  ### Indicator preview
 	
 	![Monday Script (ONLY CRYPTO) V4](doc/jo-pippin/assets/monday_script_v4/description.png)
 
-   ### Details and Revisions
+  ### Details and Revisions
 	
 	- details how to configurate the indicator
 	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
@@ -143,18 +143,18 @@
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
 	> &#10240;	
 	
-  ## Monday Scirpt (ONLY CRYPTO) V5 LTF Poc on HTF Max vol (only volume no OI)  |   Runs ok Alerts 
+ ## Monday Scirpt V5
 	
-   ### Description
+  ### Description
 	
 	* Monday Opening Range, Days of week, Max volume calculated from the weekly start, gives weekly and daily candle, included ltf poc within Max M5-M20 candle. 
 	* Added alerts and auto trade setup and poc zone with ob.
 	
-   ### Indicator preview
+  ### Indicator preview
 	
 	![Monday Script (ONLY CRYPTO) V5](doc/jo-pippin/assets/monday_script_v5/description.png)
 
-   ### Details and Revisions
+  ### Details and Revisions
 	
 	- details how to configurate the indicator
 	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
