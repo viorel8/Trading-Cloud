@@ -35,9 +35,13 @@
 	
 	<p align="left">
 		<img  width="16" src="./general/assets/cursor-hand-icon.png">
-		![Details and Revisions](doc/jo-pippin/monday_script_v2.md)
 	</p>
 	
+	[Details and Revisions](doc/jo-pippin/monday_script_v2.md) 
+	- details how to configurate the indicator
+	- you will learn how to use this indicator in ordwe to create a basic trading strategy.
+	- code snipets designed to show you how the indicator works.
+	- Trading View indicator reference
 	
 	> &#10240;
 	>**NOTE:** Please make sure that you review all the versions of this indicator and chose the best one that fets your neds.
