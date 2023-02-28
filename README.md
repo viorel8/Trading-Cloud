@@ -27,19 +27,15 @@
 	* Locates Mondays and extend through Tuesday. 
 	* Shows Opening range and warning when Monday H/L is breached on Tuesday 
 
-	###Indicator preview
-	
-	<p align="center">
-	  <img width="600" src="doc/jo-pippin/assets/monday_script_v1/description.png" alt="Monday Script (ONLY CRYPTO) V1" >
-	</p>
-
-	###Details and Revisions
+	### Indicator preview
 	
 	![Monday Script (ONLY CRYPTO) V1](doc/jo-pippin/assets/monday_script_v1/description.png)
+
+	### Details and Revisions
 	
 	<p align="left">
 		<img  width="16" src="./general/assets/cursor-hand-icon.png">
-		<a href="doc/jo-pippin/monday_script_v1.md " >WebHook backend setup</a></br>
+		![Details and Revisions](doc/jo-pippin/monday_script_v2.md)
 	</p>
 	
 	
