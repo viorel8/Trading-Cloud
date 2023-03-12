@@ -1,0 +1,1216 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Jo-Pippin
+
+//@version=5
+indicator('D-LEVELS', overlay=true)
+
+//----------TABLE SETTINGS--------------//
+Text_Color_inverse = input.color(color.new(#000000, 0), title = "Table Text Color When Active", group = "Table Settings")
+inp_text_size      = input.string("Small", options = ["Tiny", "Small"], title = "Table Text Size", group = "Table Settings")
+TextSize           = inp_text_size == "Tiny" ? size.tiny : inp_text_size == "Small" ? size.small : na
+inp_text_size2     = input.string("Small", options = ["Tiny", "Small"], title = "Label Text Size", group = "Table Settings")
+TextSize_Labels    = inp_text_size2 == "Tiny" ? size.tiny : inp_text_size2 == "Small" ? size.small : na
+Text_Color_Label   = input.color(color.new(#787b86, 0), title = "Table Text Color Inactive", group = "Table Settings")
+Text_Color_Label_active   = input.color(color.new(#787b86, 0), title = "Text Color Label Active", group = "Table Settings")
+Bars_back_Dynamic_lines = input.int(10,  'All Dynamic Zone Lookback Display (length of line on chart)',  minval=1, maxval=100, group = "Table Settings")
+Hiding_Price_range      = input.float(10.,'Only show levels from "x" % away from current price',step=0.5, minval=0.5, maxval=100, group = "Table Settings")
+show_w_m_q_Open         = input(title='Show W,M and Q Open Dynamic Zones on Chart (Only show/hide period opens on chart Lines) ', defval=true, group = "Table Settings")
+date_labels  = input.time(title='Date', defval=timestamp('2022-09-01T00:00+00:00'), group = "Table Settings")
+//-----------AVWAPS SETTINGS--------------//
+Vwap_ticker = input.symbol(title="AVWAP Ticker Input",  defval="BITSTAMP:BTCUSD", group = "AVWAPS")
+Vwap_hlc    = request.security(Vwap_ticker, '15', hlc3)
+show1  = input.bool(false, 'Show AVWAPS Lines', group = "AVWAPS")
+color1 = input.color(#787b86, 'AVWAP Line Color', group = "AVWAPS")
+date1  = input.time(title='Date', defval=timestamp('2022-01-01T00:00+00:00'), inline='YearlyVwap', group = "AVWAPS")
+date2  = input.time(title='Date', defval=timestamp('2022-03-28T18:00+00:00'), inline='yHighVwap', group = "AVWAPS")
+date3  = input.time(title='Date', defval=timestamp('2022-06-18T23:00+00:00'), inline='yHowVwap', group = "AVWAPS")
+Shift_Vwap = input.int(90, title  = "Label Positioning Avwap Levels", minval=1, group = "AVWAPS")
+
+//-----------HIGH VOL NODE SETTINGS------//
+vol_per_trigger      = 99
+Warning_Vol_node     = input.float(2., 'Warning % away to Both Sides of Monday Related Levels',step=0.5, minval=0.5, maxval=20,group='Volume Nodes')
+showlabel_dynamic_vol  = input(title='Show Volume Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Volume Nodes')
+Warning_Color_Vol    =  input.color(color.new(#343946, 0),title='Vol Node Color Warning',group='Volume Nodes')
+Line_width_vol_Nodes = input.int(1, 'Custom Dynamic Zone Width', minval=1, maxval=100,group='Volume Nodes')
+period1 = input.int(200, title="Period #1", minval=1,group='Volume Nodes')
+period2 = input.int(1700, title="Period #2", minval=1,group='Volume Nodes')
+period3 = input.int(2000, title="Period #3", minval=1,group='Volume Nodes')
+show_p1 = input.bool(true, "Show period #1",group='Volume Nodes')
+show_p2 = input.bool(true, "Show period #2",group='Volume Nodes')
+show_p3 = input.bool(true, "Show period #3",group='Volume Nodes')
+Shift   = input.int(90, title="Label Positioning Vol Nodes", minval=1,group='Volume Nodes')
+extend_level = "None"
+
+//-----------QUARTERS THEORY SETTINGS------//
+tf = input.timeframe('12M', title ='Bottom Anchor TF', group = "Quarterly Theory")
+src_QT = input.source(low, title  = "Bottom Anchor Shource", group = "Quarterly Theory")
+path   = input(title ='Show ATH', defval=true, group = "Quarterly Theory")
+patl   = input(title ='Show Bottom Anchor', defval=true, group = "Quarterly Theory")
+pfib1  = input(title ='Plot (0.25)', defval=true, group = "Quarterly Theory")
+pfib2  = input(title ='Plot (0.5)',  defval=true, group = "Quarterly Theory")
+pfib3  = input(title ='Plot (0.75)', defval=true, group = "Quarterly Theory")
+
+//-----------MONDAY SETTINGS--------------//
+showline_dynamic_Monday   = input(title='Show Monday Dynamic Zones on Chart (note levels will still show in table) ', defval=false,group='Monday Levels')
+showlabel_dynamic_mon = input(title='Show Monday Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Monday Levels')
+Warning_monday_levels     = input.float(1., 'Warning % away to Both Sides of Monday Related Levels',step=0.5, minval=0.5, maxval=20,group='Monday Levels')
+Line_width_dynamic_monday = input.int(1, title='Monday Zone Width', minval=1, maxval=40, group='Monday Levels')
+Warning_Color_Monday      =  input.color(color.new(#343946, 0),title='Monday Color Warning',group='Monday Levels')
+show    = input(title='Show pMonday Labels on Chart', defval=true,group='Monday Levels')
+inp_ext = input.int(30, title = "pMday Label pos",group='Monday Levels')
+Shift77 = input.int(90, title  = "Label Positioning Monday Levels", minval=1,group='Monday Levels')
+
+//-----------WEEKLY SETTINGS--------------//
+showline_dynamic_Weekly  = input(title='Show Weekly Related Dynamic Zones on Chart(note levels will still show in table) ', defval=true,group='Weekly Related Levels')
+showlabel_dynamic_weekly = input(title='Show Weekly Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Weekly Related Levels')
+Warning_Weekly_levels    = input.float(2., 'Warning % away to Both Sides of Weekly Related Levels',step=0.5, minval=0.5, maxval=20,group='Weekly Related Levels')
+Line_width_dynamic_week  = input.int(1, 'Weekly Related Dynamic Zone Width', minval=1, maxval=100,group='Weekly Related Levels')
+Warning_Color_Weekly     =  input.color(color.new(#343946, 0),title='Weekly Related Color Warning',group='Weekly Related Levels')
+Shift7 = input.int(90, title  = "Label Positioning Weekly Levels", minval=1,group='Weekly Related Levels')
+
+//-----------MONTHLY SETTINGS-------------//
+showline_dynamic_monthly  = input(title='Show Monthly Related Dynamic Zones on Chart(note levels will still show in table) ', defval=true,group='Monthly Related Levels')
+showlabel_dynamic_monthly = input(title='Show Monthly Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Monthly Related Levels')
+Warning_Monthly_levels    = input.float(2., 'Warning % away to Both Sides of Monthly Related Levels',step=0.5, minval=0.5, maxval=20,group='Monthly Related Levels')
+Line_width_dynamic_month  = input.int(1, 'Monthly Related Dynamic Zone Width', minval=1, maxval=100,group='Monthly Related Levels')
+Warning_Color_Monthly__Levels = input.color(color.new(#343946, 0),title='Monthly Related Color Warning',group='Monthly Related Levels')
+Shift3 = input.int(90, title  = "Label Positioning Monthly Levels", minval=1,group='Monthly Related Levels')
+
+//-----------QUARTERLY SETTINGS----------//
+showline_dynamic_quarterly   = input(title ='Show Quarterly Related Dynamic Zones on Chart(note levels will still show in table) ', defval=true,group='Quarterly Related Levels')
+showlabel_dynamic_quarterly  = input(title ='Show Quarterly Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Quarterly Related Levels')
+Warning_Quarterly_levels     = input.float(2., 'Warning % away to Both Sides of Quarterly Related Levels',step=0.5, minval=0.5, maxval=20,group='Quarterly Related Levels')
+Line_width_dynamic_Quarterly = input.int(1, 'Quarterly Related Dynamic Zone Width', minval=1, maxval=100,group='Quarterly Related Levels')
+Warning_Color_Quarterly__Levels = input.color(color.new(#343946, 0),title='Quarterly Related Color Warning',group='Quarterly Related Levels')
+Shift4 = input.int(90, title    ="Label Positioning Quarterly Levels", minval=1,group='Quarterly Related Levels')
+
+//-----------YEARLY SETTINGS----------//
+showline_dynamic_yearly   = input(title='Show Yearly Related Dynamic Zones on Chart(note levels will still show in table) ', defval=true,group='Yearly Related Levels')
+showlabel_dynamic_yearly  = input(title='Show Yearly Related Dynamic Labels on Chart(note levels will still show in table) ', defval=false,group='Yearly Related Levels')
+Warning_yearly_levels     = input.float(3., 'Warning % away to Both Sides of Yearly Related Levels',step=0.5, minval=0.5, maxval=20,group='Yearly Related Levels')
+Line_width_dynamic_yearly = input.int(1, 'Yearly Related Dynamic Zone Width', minval=1, maxval=100,group='Yearly Related Levels')
+Warning_Color_yearly_Levels  = input.color(color.new(#343946, 0),title='Yearly Related Color Warning',group='Yearly Related Levels')
+Shift2 = input.int(90, title ="Label Positioning Yearly Levels", minval=1,group='Yearly Related Levels')
+
+//-----------CUSTOM LEVEL SETTINGS----------//
+showline_dynamic = input(title='Show Custom Dynamic Zones on Chart(note levels will still show in table) ', defval=false,group='Custom Levels')
+Warning = input.float(2., 'Warning % away to Both Sides of Custom Levels',step=0.5, minval=0.5, maxval=20,group='Custom Levels')
+Line_width_dynamic = input.int(1, 'Custom Dynamic Zone Width', minval=1, maxval=100,group='Custom Levels')
+Warning_Color = input.color(color.new(#343946, 0),title='Custom Level Color Warning',group='Custom Levels')
+Upper_Level   = input.string('Upper Custom', 'Upper Level Custom Text',group='Custom Levels')
+Lower_Level   = input.string('Lower Custom', 'Lower Level Custom Text',group='Custom Levels')
+Upper_level_price = input.price(60000.00, title="Upper Level Price",group='Custom Levels')
+Lower_level_price = input.price(10000.00, title="Lower Level Price",group='Custom Levels')
+c1 = input(title  = 'Color Upper Level', defval=#5d606b,group='Custom Levels')
+c2 = input(title  = 'Color Lower Level', defval=#5d606b,group='Custom Levels')
+Shift6 = input.int(90, title ="Label Positioning Custom Levels", minval=1,group='Custom Levels')
+
+
+//-----------AVWAPS CALCS START--------------------//
+f_avwap(src, date) =>
+    start  = time >= date and time[1] < date
+    sumSrc = src * volume
+    sumVol = volume
+    sumSrc := start ? sumSrc : sumSrc + sumSrc[1]
+    sumVol := start ? sumVol : sumVol + sumVol[1]
+    sumSrc / sumVol
+
+plot(show1 ? f_avwap(hlc3, date1) : na, color=color1, title='yVwap')
+plot(show1 ? f_avwap(hlc3, date2) : na, color=color1, title='yHighVWAP')
+plot(show1 ? f_avwap(hlc3, date3) : na, color=color1, title='yLowVWAP')
+
+Yearly_AVWAP  = f_avwap(hlc3, date1)
+YearlyH_AVWAP = f_avwap(hlc3, date2)
+YearlyL_AVWAP = f_avwap(hlc3, date3)
+//-----------AVWAPS CALCS ENDS------------------------//
+
+//-----------HIGH VOL NODES CALCS START--------//
+find_last_high_volume(data, n) =>
+    r = 0
+    for i=0 to n
+        if data[i] > vol_per_trigger
+            r := i 
+            break
+    r
+
+get_price_data(period) =>
+    v = 100 * (volume / ta.highest(volume, period))
+    f = find_last_high_volume(v, period)
+    src = open[f] > close[f] ? low : high
+    [v, f, src]
+
+ext = extend_level == "Right" ? extend.right : extend_level == "Left" ? extend.left : extend_level == "Both" ? extend.both : extend.none
+
+var line l1   = na
+var line l2   = na
+var line l3   = na
+var label l8  = na
+var label l9  = na
+var label l10 = na
+
+if show_p1
+    [v1, f1, src1] = get_price_data(period1)
+    if v1 > vol_per_trigger
+        line.set_extend(l1, extend.none)
+        line.set_color(l1, color.new(color.black,100))
+        l1 := line.new(bar_index[1], src1[f1], bar_index, src1[f1], color=color.new(#565c70, 100), style=line.style_solid, width=1, extend=ext)
+        l8 := label.new(bar_index[1], src1, '', textcolor=color.black, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=size.tiny)
+        label.delete(l8[1])
+if show_p2
+    [v2, f2, src2] = get_price_data(period2)
+    if v2 > vol_per_trigger
+        line.set_extend(l2, extend.none)
+        line.set_color(l2,color.new(color.black,100))
+        l2 := line.new(bar_index[1], src2[f2], bar_index, src2[f2], color=color.new(#565c70, 100), style=line.style_solid, width=1, extend=ext)
+        l9 := label.new(na, src2, '', textcolor=color.black, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price,size=size.small)
+        label.set_x(id=l9, x=bar_index)
+        label.delete(l9[1])
+if show_p3
+    [v3, f3, src3] = get_price_data(period3)
+    if v3 > vol_per_trigger
+        line.set_extend(l3, extend.none)
+        if false and not false
+            line.set_extend(l3, extend=extend.both)
+        line.set_color(l3,color.new(color.black,100))
+        l3 := line.new(bar_index[1], src3[f3], bar_index, src3[f3], color=color.new(#565c70, 100), style=line.style_solid, width=1, extend=ext)
+        l10:= label.new(bar_index, src3, '', textcolor=color.black, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=size.small)
+        label.delete(l10[1])
+if not false
+    line.set_x2(l1, bar_index)
+    line.set_x2(l2, bar_index)
+    line.set_x2(l3, bar_index)
+    
+Vol_node_01_price = label.get_y(l8) 
+Vol_node_02_price = label.get_y(l9) 
+Vol_node_03_price = label.get_y(l10) 
+//-----------HIGH VOL NODES CALCS ENDS--------//
+
+//-----------QUARTERS THEORY CALCS START------//
+h = request.security(syminfo.tickerid, 'M', ta.highest(bar_index + 1))
+l = request.security(syminfo.tickerid, tf, src_QT)
+fib1 = (h - l) * 0.25 + l
+fib2 = (h - l) * 0.5 + l
+fib3 = (h - l) * 0.75 + l
+
+var label Ll = na
+label.delete(Ll)
+if patl
+    Ll := label.new(bar_index, l, '- Bottom Anchor('+ str.tostring(src_QT)+ ')-', textcolor=Text_Color_Label, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=TextSize_Labels)
+    Ll
+var label Lfib1 = na
+label.delete(Lfib1)
+if pfib1
+    Lfib1 := label.new(bar_index, fib1, '- 25% -', textcolor=Text_Color_Label, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=TextSize_Labels)
+    Lfib1
+var label Lfib2 = na
+label.delete(Lfib2)
+if pfib2
+    Lfib2 := label.new(bar_index, fib2, '- 50% -', textcolor=Text_Color_Label, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=TextSize_Labels)
+    Lfib2
+var label Lfib3 = na
+label.delete(Lfib3)
+if pfib3
+    Lfib3 := label.new(bar_index, fib3, '- 75% -', textcolor=Text_Color_Label, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=TextSize_Labels)
+    Lfib3
+var label Lh = na
+label.delete(Lh)
+if path
+    Lh := label.new(bar_index, h, '- ATH -', textcolor=Text_Color_Label, color=color.new(color.black, 100), style=label.style_label_left, yloc=yloc.price, size=TextSize_Labels)
+    Lh
+//-----------QUARTERS THEORY CALCS END------//
+
+//-----------MDAY CALCS START---------------//
+[daily_time, daily_open, daily_high, daily_low] = request.security(syminfo.tickerid, 'D', [time, open, high, low], lookahead=barmerge.lookahead_on)
+
+var is_dayrange_enabled = true
+// var dayrange_chosen = input.string('Monday', title='Day of Week Range', options=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
+var dayrange_chosen = 'Monday'
+var is_low_timeframe = timeframe.isminutes and (timeframe.period == '120' ? false : timeframe.period == '240' ? false : timeframe.period == '360' ? false : timeframe.period == '540' ? false : timeframe.period == '720' ? false : true)
+var can_show_dayrange = is_dayrange_enabled and timeframe.isintraday
+
+get_limit_right(bars) =>
+    timenow + (time - time[1]) * bars
+
+var drange = dayrange_chosen == 'Monday' ? dayofweek.monday : dayrange_chosen == 'Tuesday' ? dayofweek.tuesday : dayrange_chosen == 'Wednesday' ? dayofweek.wednesday : dayrange_chosen == 'Thursday' ? dayofweek.thursday : dayrange_chosen == 'Friday' ? dayofweek.friday : dayrange_chosen == 'Saturday' ? dayofweek.saturday : dayrange_chosen == 'Sunday' ? dayofweek.sunday : dayofweek.monday
+var dayrange_high = float(na)
+var dayrange_low = float(na)
+var dayrange_mid = float(na)
+if dayofweek == drange
+    dayrange_high := daily_high
+    dayrange_low := daily_low
+    dayrange_mid := math.avg(dayrange_high, dayrange_low)
+    dayrange_mid
+
+Monday_H= dayrange_high
+Monday_L= dayrange_low
+Monday_Mid = dayrange_mid
+//-----------MDAY CALCS END---------------//
+
+//-----------PMDAY CALCS START---------------//
+Hide_labels_auto = show ? Text_Color_Label: color.new(color.black,100)
+
+f_create_level(_type, _start_condition, _active_condition, _global_level_array, _color, _line_width, _line_ext, _line_style, _label_size, _title, _iter, _is_enabled) =>
+    var float _price = na
+    var int _start_time = na
+    var float _hh = na
+    var float _ll = na
+    var line _price_line = line.new(x1 = na, y1 = na, x2 = na, y2 = na, xloc = xloc.bar_time, color = _color, width = _line_width, style = _line_style)
+    var label _price_label = label.new(x = na, y = na, xloc = xloc.bar_time, style = label.style_label_left, color = #00000000, size = TextSize_Labels, textcolor = Text_Color_Label_active)
+    _end_time = int(time + _line_ext * ta.change(time))
+    if _type == "high"
+        if _start_condition 
+            _price := high
+            _start_time := time
+        else if _active_condition
+            _price := math.max(_price, high)
+    else if _type == "low"
+        if _start_condition
+            _price := low
+            _start_time := time
+        else if _active_condition
+            _price := math.min(_price, low)
+    float _price_val = _iter == 0 ? _price : ta.valuewhen(_start_condition, _price[1], _iter - 1)
+    int _start_time_val = _iter == 0 ? _start_time : ta.valuewhen(_start_condition, _start_time[1], _iter - 1)
+    _found_existing = array.indexof(_global_level_array, _price_val) > -1
+    if _is_enabled 
+        if _found_existing 
+            label.set_xy(_price_label, x = na, y = na)
+        else
+            array.push(_global_level_array, _price_val)
+            label.set_text(_price_label, text = _title )
+            label.set_xy(_price_label, x = _end_time+20000000, y = _price_val)
+float[] global_open_array = array.new_float()
+float[] global_high_array = array.new_float()
+float[] global_low_array = array.new_float()
+float[] global_eq_array = array.new_float()
+
+f_create_level("high", ta.change(time("W")) != 0, dayofweek == dayofweek.monday, global_high_array, Hide_labels_auto, 1, inp_ext, line.style_solid, size.tiny, "pMdayH ", 1, true and timeframe.isintraday )
+f_create_level("low", ta.change(time("W")) != 0, dayofweek == dayofweek.monday, global_low_array, Hide_labels_auto, 1, inp_ext, line.style_solid, size.tiny, "pMdayL          ", 1, true and timeframe.isintraday)
+//-----------PMDAY CALCS END---------------//
+
+pwOpen   = request.security(syminfo.tickerid, 'W',   open[1], lookahead=barmerge.lookahead_on)
+wOpen    = request.security(syminfo.tickerid, 'W',   open,    lookahead=barmerge.lookahead_on)
+wLow     = request.security(syminfo.tickerid, 'W',   low,     lookahead=barmerge.lookahead_on)
+wHigh    = request.security(syminfo.tickerid, 'W',   high,    lookahead=barmerge.lookahead_on)
+pmOpen   = request.security(syminfo.tickerid, 'M',   open[1], lookahead=barmerge.lookahead_on)
+mOpen    = request.security(syminfo.tickerid, 'M',   open,    lookahead=barmerge.lookahead_on)
+mHigh    = request.security(syminfo.tickerid, 'M',   high,    lookahead=barmerge.lookahead_on)
+mLow     = request.security(syminfo.tickerid, 'M',   low,     lookahead=barmerge.lookahead_on)
+pqOpen   = request.security(syminfo.tickerid, '3M',  open[1], lookahead=barmerge.lookahead_on)
+qOpen    = request.security(syminfo.tickerid, '3M',  open,    lookahead=barmerge.lookahead_on)
+pyOpen   = request.security(syminfo.tickerid, '12M', open[1], lookahead=barmerge.lookahead_on)
+pyHigh   = request.security(syminfo.tickerid, '12M', high[1], lookahead=barmerge.lookahead_on)
+pyLow    = request.security(syminfo.tickerid, '12M', low[1],  lookahead=barmerge.lookahead_on)
+yOpen    = request.security(syminfo.tickerid, '12M', open,    lookahead=barmerge.lookahead_on)
+yLow     = request.security(syminfo.tickerid, '12M', low,     lookahead=barmerge.lookahead_on)
+yHigh    = request.security(syminfo.tickerid, '12M', high,    lookahead=barmerge.lookahead_on)
+
+////////////////////////-------DEVIATION CALCS START------------////////////////////////
+Monday_H_wLow_Deviation      = ((Monday_H - wLow) * 2) + wLow
+Monday_H_wLow_Deviation_top  = ((Monday_H - wLow) * -1) + wLow
+Monday_L_wHigh_Deviation     = ((Monday_L - wHigh) * 2) + wHigh
+Monday_L_wHigh_Deviation_top = ((Monday_L - wHigh) * -1) + wHigh
+
+wOpen_pwOpen_Deviation     = ((wOpen - pwOpen) * 2) + pwOpen
+wOpen_pwOpen_Deviation_top = ((wOpen - pwOpen) * -1) + pwOpen
+mOpen_pmOpen_Deviation     = ((mOpen - pmOpen) * 2) + pmOpen
+mOpen_pmOpen_Deviation_top = ((mOpen - pmOpen) * -1) + pmOpen
+yOpen_pyOpen_Deviation     = ((yOpen - pyOpen) * 2) + pyOpen
+yOpen_pyOpen_Deviation_top = ((yOpen - pyOpen) * -1) + pyOpen
+////////////////////////-------DEVIATION CALCS END------------////////////////////////
+
+////////////////////////-------MEANS CALCS START------------////////////////////////
+wOpen_to_pwOpen_mean_price = math.avg(pwOpen,wOpen)
+pmOpen_to_mOpen_mean_price = math.avg(pmOpen,mOpen)
+pqOpen_to_qOpen_mean_price = math.avg(pqOpen,qOpen)
+pyOpen_to_yOpen_mean_price = math.avg(pyOpen,yOpen)
+yLow_to_mOpen_mean_price   = math.avg(yLow,mOpen)
+yOpen_to_qOpen_mean_price  = math.avg(yOpen,qOpen)
+qOpen_to_mHigh_mean_price  = math.avg(qOpen,mHigh)
+qOpen_to_mLow_mean_price   = math.avg(qOpen,mLow)
+yLow_to_pmOpen_mean_price  = math.avg(yLow,pmOpen)
+yOpen_to_mOpen_mean_price  = math.avg(yOpen,mOpen)
+yHigh_to_mOpen_mean_price  = math.avg(yHigh,mOpen)
+yHigh_to_pmOpen_mean_price = math.avg(yHigh,pmOpen)
+pyHigh_to_yLow_mean_price  = math.avg(pyHigh,yLow)
+yHigh_to_yOpen_mean_price  = math.avg(yHigh,yOpen)
+yOpen_to_pyLow_mean_price  = math.avg(yOpen,pyLow)
+yOpen_to_yLow_mean_price   = math.avg(yOpen,yLow)
+////////////////////////-------MEANS CALCS ENDS------------////////////////////////
+
+///////////////////-------PERCENTAGE FROM CALCS START------////////////////////////
+Percentage_Monday_H                   = (close - Monday_H) / Monday_H * 100
+Percentage_Monday_L                   = (close - Monday_L) / Monday_L * 100
+Percentage_Monday_Mid                 = (close - Monday_Mid) / Monday_Mid * 100
+Percentage_wOpen                      = (close - wOpen) / wOpen * 100
+Percentage_pwOpen                     = (close - pwOpen) / pwOpen * 100
+Percentage_mOpen                      = (close - mOpen) / mOpen * 100
+Percentage_pmOpen                     = (close - pmOpen) / pmOpen * 100
+Percentage_qOpen                      = (close - qOpen) / qOpen * 100
+Percentage_pqOpen                     = (close - pqOpen) / pqOpen * 100
+Percentage_yOpen                      = (close - yOpen) / yOpen * 100
+Percentage_pyOpen                     = (close - pyOpen) / pyOpen * 100
+Percentage_yHigh                      = (close - yHigh) / yHigh * 100
+Percentage_pyHigh                     = (close - pyHigh) / pyHigh * 100
+Percentage_yLow                       = (close - yLow) / yLow * 100
+Percentage_pyLow                      = (close - pyLow) / pyLow * 100
+Percentage_wOpen_to_pwOpen_mean_price = (close - wOpen_to_pwOpen_mean_price) / wOpen_to_pwOpen_mean_price * 100
+Percentage_pmOpen_to_mOpen_mean_price = (close - pmOpen_to_mOpen_mean_price) / pmOpen_to_mOpen_mean_price * 100
+Percentage_pqOpen_to_qOpen_mean_price = (close - pqOpen_to_qOpen_mean_price) / pqOpen_to_qOpen_mean_price * 100
+Percentage_pyOpen_to_yOpen_mean_price = (close - pyOpen_to_yOpen_mean_price) / pyOpen_to_yOpen_mean_price * 100
+Percentage_yLow_to_mOpen_mean_price   = (close - yLow_to_mOpen_mean_price)   / yLow_to_mOpen_mean_price * 100
+Percentage_yOpen_to_qOpen_mean_price  = (close - yOpen_to_qOpen_mean_price)  / yOpen_to_qOpen_mean_price * 100
+Percentage_qOpen_to_mHigh_mean_price  = (close - qOpen_to_mHigh_mean_price)  / qOpen_to_mHigh_mean_price * 100
+Percentage_qOpen_to_mLow_mean_price   = (close - qOpen_to_mLow_mean_price)   / qOpen_to_mLow_mean_price * 100
+Percentage_yLow_to_pmOpen_mean_price  = (close - yLow_to_pmOpen_mean_price)  / yLow_to_pmOpen_mean_price * 100
+Percentage_yOpen_to_mOpen_mean_price  = (close - yOpen_to_mOpen_mean_price)  / yOpen_to_mOpen_mean_price * 100
+Percentage_yHigh_to_mOpen_mean_price  = (close - yHigh_to_mOpen_mean_price)  / yHigh_to_mOpen_mean_price * 100
+Percentage_yHigh_to_pmOpen_mean_price = (close - yHigh_to_pmOpen_mean_price)  / yHigh_to_pmOpen_mean_price * 100
+Percentage_pyHigh_to_yLow_mean_price  = (close - pyHigh_to_yLow_mean_price)  / pyHigh_to_yLow_mean_price * 100
+Percentage_yHigh_to_yOpen_mean_price  = (close - yHigh_to_yOpen_mean_price)  / yHigh_to_yOpen_mean_price * 100
+Percentage_yOpen_to_pyLow_mean_price  = (close - yOpen_to_pyLow_mean_price)  / yOpen_to_pyLow_mean_price * 100
+Percentage_yOpen_to_yLow_mean_price   = (close - yOpen_to_yLow_mean_price)  / yOpen_to_yLow_mean_price * 100
+Percentage_Monday_H_wLow_Deviation_bot  = (close - Monday_H_wLow_Deviation) / Monday_H_wLow_Deviation * 100
+Percentage_Monday_H_wLow_Deviation_top  = (close - Monday_H_wLow_Deviation_top) / Monday_H_wLow_Deviation_top * 100
+Percentage_Monday_L_wHigh_Deviation_bot = (close - Monday_L_wHigh_Deviation) / Monday_L_wHigh_Deviation * 100
+Percentage_Monday_L_wHigh_Deviation_top = (close - Monday_L_wHigh_Deviation_top) / Monday_L_wHigh_Deviation_top * 100
+Percentage_wOpen_pwOpen_deviation_bot = (close - wOpen_pwOpen_Deviation) / wOpen_pwOpen_Deviation * 100
+Percentage_wOpen_pwOpen_deviation_top = (close - wOpen_pwOpen_Deviation_top) / wOpen_pwOpen_Deviation_top * 100
+Percentage_mOpen_pmOpen_deviation_bot = (close - mOpen_pmOpen_Deviation) / mOpen_pmOpen_Deviation * 100
+Percentage_mOpen_pmOpen_deviation_top = (close - mOpen_pmOpen_Deviation_top) / mOpen_pmOpen_Deviation_top * 100
+Percentage_yOpen_pyOpen_deviation_bot = (close - yOpen_pyOpen_Deviation) / yOpen_pyOpen_Deviation * 100
+Percentage_yOpen_pyOpen_deviation_top = (close - yOpen_pyOpen_Deviation_top) / yOpen_pyOpen_Deviation_top * 100
+Percentage_Yearly_AVWAP_price  = (close - Yearly_AVWAP) / Yearly_AVWAP * 100
+Percentage_YearlyH_AVWAP_price = (close - YearlyH_AVWAP) / YearlyH_AVWAP * 100
+Percentage_YearlyL_AVWAP_price = (close - YearlyL_AVWAP) / YearlyL_AVWAP * 100
+Percent_Upper_level_price      = (close - Upper_level_price) / Upper_level_price * 100
+Percent_Lower_level_price      = (close - Lower_level_price) / Lower_level_price * 100
+Percent_Vol_node_01_price      = (close - Vol_node_01_price) / Vol_node_01_price * 100
+Percent_Vol_node_02_price      = (close - Vol_node_02_price) / Vol_node_02_price * 100
+Percent_Vol_node_03_price      = (close - Vol_node_02_price) / Vol_node_03_price * 100
+
+percentage_range(value, minimum, maximum) =>
+    math.min(math.max(value, minimum), maximum)
+    
+truncate(_number, _decimalPlaces) =>
+    _factor = math.pow(10, _decimalPlaces)
+    int(_number * _factor) / _factor    
+////////-------PERCENTAGE FROM CALCS ENDS------------/////////
+
+////////TRIGGERS AND LINES START//////////
+/////////MONDAY TRIGGERS AND LINES////////
+range_value_Monday_H = percentage_range(Percentage_Monday_H, -Warning_monday_levels, +Warning_monday_levels)
+Monday_H_BG_color  =  range_value_Monday_H == Percentage_Monday_H ? Warning_Color_Monday : na
+Monday_H_TX_color  =  range_value_Monday_H == Percentage_Monday_H ? Text_Color_inverse : Text_Color_Label
+Monday_H_TX_color2  =  range_value_Monday_H == Percentage_Monday_H ? Text_Color_Label_active : na
+Monday_H_price_line = Monday_H and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_H, time + 1, Monday_H, color=Monday_H_BG_color    , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_H_price_line[1])
+Monday_H_label = Monday_H and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_H ,str.tostring(truncate(Monday_H,2)) + ' | '+'mday High', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_H_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_H_label[1])
+
+range_value_Monday_L = percentage_range(Percentage_Monday_L, -Warning_monday_levels, +Warning_monday_levels)
+Monday_L_BG_color  =  range_value_Monday_L == Percentage_Monday_L ? Warning_Color_Monday : na
+Monday_L_TX_color  =  range_value_Monday_L == Percentage_Monday_L ? Text_Color_inverse : Text_Color_Label
+Monday_L_TX_color2  =  range_value_Monday_L == Percentage_Monday_L ? Text_Color_Label_active : na
+Monday_L_price_line = Monday_H and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_L, time + 1, Monday_L, color=Monday_L_BG_color    , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_L_price_line[1])
+Monday_L_label = Monday_L and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_L ,str.tostring(truncate(Monday_L,2)) + ' | '+'mday Low', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_L_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_L_label[1])
+
+range_value_Monday_Mid = percentage_range(Percentage_Monday_Mid, -Warning_monday_levels, +Warning_monday_levels)
+Monday_Mid_BG_color  =  range_value_Monday_Mid == Percentage_Monday_Mid ? Warning_Color_Monday : na
+Monday_Mid_TX_color  =  range_value_Monday_Mid == Percentage_Monday_Mid ? Text_Color_inverse : Text_Color_Label
+Monday_Mid_TX_color2  =  range_value_Monday_Mid == Percentage_Monday_Mid ? Text_Color_Label_active : na
+Monday_Mid_price_line = Monday_Mid and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_Mid, time + 1, Monday_Mid, color=Monday_Mid_BG_color    , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_Mid_price_line[1])
+Monday_Mid_label = Monday_Mid and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_Mid ,str.tostring(truncate(Monday_Mid,2)) + ' | '+'mday Mid', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_Mid_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_Mid_label[1])
+
+range_value_Monday_H_wLow_Deviation_top = percentage_range(Percentage_Monday_H_wLow_Deviation_top, -Warning_monday_levels, +Warning_monday_levels)
+Monday_H_wLow_Deviation_top_BG_color   =  range_value_Monday_H_wLow_Deviation_top == Percentage_Monday_H_wLow_Deviation_top ? Warning_Color_Monday : na
+Monday_H_wLow_Deviation_top_TX_color   =  range_value_Monday_H_wLow_Deviation_top == Percentage_Monday_H_wLow_Deviation_top ? Text_Color_inverse : Text_Color_Label
+Monday_H_wLow_Deviation_top_TX_color2   =  range_value_Monday_H_wLow_Deviation_top == Percentage_Monday_H_wLow_Deviation_top ? Text_Color_Label_active : na
+Monday_H_wLow_Deviation_top_price_line = Monday_H_wLow_Deviation_top and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_H_wLow_Deviation_top, time + 1, Monday_H_wLow_Deviation_top, color=Monday_H_wLow_Deviation_top_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_H_wLow_Deviation_top_price_line[1])
+Monday_H_wLow_Deviation_top_label = Monday_H_wLow_Deviation_top and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_H_wLow_Deviation_top ,str.tostring(truncate(Monday_H_wLow_Deviation_top,2)) + ' | '+'mday H-wLow Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_H_wLow_Deviation_top_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_H_wLow_Deviation_top_label[1])
+
+range_value_Monday_H_wLow_Deviation_bot = percentage_range(Percentage_Monday_H_wLow_Deviation_bot, -Warning_monday_levels, +Warning_monday_levels)
+Monday_H_wLow_Deviation_BG_color   =  range_value_Monday_H_wLow_Deviation_bot == Percentage_Monday_H_wLow_Deviation_bot ? Warning_Color_Monday : na
+Monday_H_wLow_Deviation_TX_color   =  range_value_Monday_H_wLow_Deviation_bot == Percentage_Monday_H_wLow_Deviation_bot ? Text_Color_inverse : Text_Color_Label
+Monday_H_wLow_Deviation_TX_color2   =  range_value_Monday_H_wLow_Deviation_bot == Percentage_Monday_H_wLow_Deviation_bot ? Text_Color_Label_active : na
+Monday_H_wLow_Deviation_price_line = Monday_H_wLow_Deviation and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_H_wLow_Deviation, time + 1, Monday_H_wLow_Deviation, color=Monday_H_wLow_Deviation_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_H_wLow_Deviation_price_line[1])
+Monday_H_wLow_Deviation_label = Monday_H_wLow_Deviation and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_H_wLow_Deviation ,str.tostring(truncate(Monday_H_wLow_Deviation,2)) + ' | '+'mday H-wLow Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_H_wLow_Deviation_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_H_wLow_Deviation_label[1])
+
+range_value_Monday_L_wHigh_Deviation_top = percentage_range(Percentage_Monday_L_wHigh_Deviation_top, -Warning_monday_levels, +Warning_monday_levels)
+Monday_L_wHigh_Deviation_top_BG_color   =  range_value_Monday_L_wHigh_Deviation_top == Percentage_Monday_L_wHigh_Deviation_top ? Warning_Color_Monday : na
+Monday_L_wHigh_Deviation_top_TX_color   =  range_value_Monday_L_wHigh_Deviation_top == Percentage_Monday_L_wHigh_Deviation_top ? Text_Color_inverse : Text_Color_Label
+Monday_L_wHigh_Deviation_top_TX_color2   =  range_value_Monday_L_wHigh_Deviation_top == Percentage_Monday_L_wHigh_Deviation_top ? Text_Color_Label_active : na
+Monday_L_wHigh_Deviation_top_price_line = Monday_L_wHigh_Deviation_top and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_L_wHigh_Deviation_top, time + 1, Monday_L_wHigh_Deviation_top, color=Monday_L_wHigh_Deviation_top_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_L_wHigh_Deviation_top_price_line[1])
+Monday_L_wHigh_Deviation_top_label = Monday_L_wHigh_Deviation_top and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_L_wHigh_Deviation_top ,str.tostring(truncate(Monday_L_wHigh_Deviation_top,2)) + ' | '+'mday L-wHigh Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_L_wHigh_Deviation_top_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_L_wHigh_Deviation_top_label[1])
+
+range_value_Monday_L_wHigh_Deviation_bot = percentage_range(Percentage_Monday_L_wHigh_Deviation_bot, -Warning_monday_levels, +Warning_monday_levels)
+Monday_L_wHigh_Deviation_BG_color   =  range_value_Monday_L_wHigh_Deviation_bot == Percentage_Monday_L_wHigh_Deviation_bot ? Warning_Color_Monday : na
+Monday_L_wHigh_Deviation_TX_color   =  range_value_Monday_L_wHigh_Deviation_bot == Percentage_Monday_L_wHigh_Deviation_bot ? Text_Color_inverse : Text_Color_Label
+Monday_L_wHigh_Deviation_TX_color2   =  range_value_Monday_L_wHigh_Deviation_bot == Percentage_Monday_L_wHigh_Deviation_bot ? Text_Color_Label_active : na
+Monday_L_wHigh_Deviation_price_line = Monday_L_wHigh_Deviation and showline_dynamic_Monday and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Monday_L_wHigh_Deviation, time + 1, Monday_L_wHigh_Deviation, color=Monday_L_wHigh_Deviation_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_monday) : na
+line.delete(Monday_L_wHigh_Deviation_price_line[1])
+Monday_L_wHigh_Deviation_label = Monday_L_wHigh_Deviation and showline_dynamic_Monday and showlabel_dynamic_mon ? label.new(time + (100000*Shift77), Monday_L_wHigh_Deviation ,str.tostring(truncate(Monday_L_wHigh_Deviation,2)) + ' | '+'mday L-wHigh Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Monday_L_wHigh_Deviation_TX_color2 , size=TextSize_Labels):na
+label.delete(Monday_L_wHigh_Deviation_label[1])
+
+range_value_Vol_node_01_price = percentage_range(Percent_Vol_node_01_price, -Warning_Vol_node, +Warning_Vol_node)
+Vol_node_01_price_BG_color   =  range_value_Vol_node_01_price == Percent_Vol_node_01_price ? Warning_Color_Vol : na
+Vol_node_01_price_TX_color   =  range_value_Vol_node_01_price == Percent_Vol_node_01_price ? Text_Color_inverse : Text_Color_Label
+Vol_node_01_price_TX_color2   =  range_value_Vol_node_01_price == Percent_Vol_node_01_price ? Text_Color_Label_active : na
+lbl = showlabel_dynamic_vol ? label.new(time + (100000*Shift), Vol_node_01_price-5,  str.tostring(truncate(Vol_node_01_price,2)) + ' | '+'vNode', xloc=xloc.bar_time , style=label.style_label_left,color=color.new(color.white,100), textcolor=Vol_node_01_price_TX_color2, size=TextSize_Labels): na
+label.delete(lbl[1])
+Vol_node_01_price_line = barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Vol_node_01_price, time + 1, Vol_node_01_price, color=Vol_node_01_price_BG_color     , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_vol_Nodes) : na
+line.delete(Vol_node_01_price_line[1])
+
+range_value_Vol_node_02_price = percentage_range(Percent_Vol_node_02_price, -Warning_Vol_node, +Warning_Vol_node)
+Vol_node_02_price_BG_color    =  range_value_Vol_node_02_price == Percent_Vol_node_02_price ? Warning_Color_Vol : na
+Vol_node_02_price_TX_color    =  range_value_Vol_node_02_price == Percent_Vol_node_02_price ? Text_Color_inverse : Text_Color_Label
+Vol_node_02_price_TX_color2   =  range_value_Vol_node_02_price == Percent_Vol_node_02_price ? Text_Color_Label_active : na
+lbl2 = showlabel_dynamic_vol ? label.new(time + (100000*Shift), Vol_node_02_price-5, str.tostring(truncate(Vol_node_02_price,2)) + ' | '+'vNode', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Vol_node_02_price_TX_color2, size=TextSize_Labels): na
+label.delete(lbl2[1])
+Vol_node_02_price_line = barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Vol_node_02_price, time + 1, Vol_node_02_price, color=Vol_node_02_price_BG_color      , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_vol_Nodes) : na
+line.delete(Vol_node_02_price_line[1])
+
+range_value_Vol_node_03_price = percentage_range(Percent_Vol_node_03_price, -Warning_Vol_node, +Warning_Vol_node)
+Vol_node_03_price_BG_color    =  range_value_Vol_node_03_price == Percent_Vol_node_03_price ? Warning_Color_Vol : na
+Vol_node_03_price_TX_color    =  range_value_Vol_node_03_price == Percent_Vol_node_03_price ? Text_Color_inverse : Text_Color_Label
+Vol_node_03_price_TX_color2   =  range_value_Vol_node_03_price == Percent_Vol_node_03_price ? Text_Color_Label_active : na
+lbl3 = showlabel_dynamic_vol ? label.new(time + (100000*Shift), Vol_node_03_price-5 ,str.tostring(truncate(Vol_node_03_price,2)) + ' | '+'vNode', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Vol_node_03_price_TX_color2, size=TextSize_Labels): na
+label.delete(lbl3[1])
+Vol_node_03_price_line = barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Vol_node_03_price, time + 1, Vol_node_03_price, color=Vol_node_03_price_BG_color     , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_vol_Nodes) : na
+line.delete(Vol_node_03_price_line[1])
+
+/////////WEEKLY RELATED TRIGGERS AND LINES////////
+range_value_wOpen = percentage_range(Percentage_wOpen, -Warning_Weekly_levels, +Warning_Weekly_levels)
+wOpen_BG_color    =  range_value_wOpen == Percentage_wOpen ? Warning_Color_Weekly : na
+wOpen_TX_color    =  range_value_wOpen == Percentage_wOpen ? Text_Color_inverse : Text_Color_Label
+wOpen_TX_color2   =  range_value_wOpen == Percentage_wOpen ? Text_Color_Label_active : na
+wOpen_price_line  = wOpen and showline_dynamic_Weekly and show_w_m_q_Open and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],wOpen, time + 1, wOpen, color=wOpen_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_week) : na
+line.delete(wOpen_price_line[1])
+wOpen_price_label = wOpen and showline_dynamic_Weekly and showlabel_dynamic_weekly ? label.new(time + (100000*Shift7), wOpen ,str.tostring(truncate(wOpen,2)) + ' | '+'wOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=wOpen_TX_color2 , size=TextSize_Labels):na
+label.delete(wOpen_price_label[1])
+
+range_value_pwOpen = percentage_range(Percentage_pwOpen, -Warning_Weekly_levels, +Warning_Weekly_levels)
+pwOpen_BG_color    =  range_value_pwOpen == Percentage_pwOpen ? Warning_Color_Weekly : na
+pwOpen_TX_color    =  range_value_pwOpen == Percentage_pwOpen ? Text_Color_inverse : Text_Color_Label
+pwOpen_TX_color2   =  range_value_pwOpen == Percentage_pwOpen ? Text_Color_Label_active : na
+pwOpen_price_line  = pwOpen and showline_dynamic_Weekly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pwOpen, time + 1, pwOpen, color=pwOpen_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_week) : na
+line.delete(pwOpen_price_line[1])
+pwOpen_price_label = pwOpen and showline_dynamic_Weekly and showlabel_dynamic_weekly ? label.new(time + (100000*Shift7), pwOpen ,str.tostring(truncate(pwOpen,2)) + ' | '+'pwOpen', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=pwOpen_TX_color2, size=TextSize_Labels):na
+label.delete(pwOpen_price_label[1])
+
+range_value_wOpen_to_pwOpen_mean_price = percentage_range(Percentage_wOpen_to_pwOpen_mean_price, -Warning_Weekly_levels, +Warning_Weekly_levels)
+wOpen_to_pwOpen_mean_price_BG_color    =  range_value_wOpen_to_pwOpen_mean_price == Percentage_wOpen_to_pwOpen_mean_price ? Warning_Color_Weekly : na
+wOpen_to_pwOpen_mean_price_TX_color    =  range_value_wOpen_to_pwOpen_mean_price == Percentage_wOpen_to_pwOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+wOpen_to_pwOpen_mean_price_line = wOpen_to_pwOpen_mean_price and showline_dynamic_Weekly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], wOpen_to_pwOpen_mean_price, time + 1, wOpen_to_pwOpen_mean_price, xloc=xloc.bar_time, extend=extend.none, color=wOpen_to_pwOpen_mean_price_BG_color, style=line.style_solid, width=Line_width_dynamic_week) : na
+line.delete(wOpen_to_pwOpen_mean_price_line[1])
+wOpen_to_pwOpen_mean_label = wOpen_to_pwOpen_mean_price and showline_dynamic_Weekly and showlabel_dynamic_weekly ? label.new(time + (100000*Shift3), wOpen_to_pwOpen_mean_price ,str.tostring(truncate(wOpen_to_pwOpen_mean_price,2)) + ' | '+'wOpen-pwOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=wOpen_to_pwOpen_mean_price_BG_color , size=TextSize_Labels):na
+label.delete(wOpen_to_pwOpen_mean_label[1])
+
+range_value_wOpen_pwOpen_Deviation_top = percentage_range(Percentage_wOpen_pwOpen_deviation_top, -Warning_Weekly_levels, +Warning_Weekly_levels)
+wOpen_pwOpen_Deviation_top_BG_color   =  range_value_wOpen_pwOpen_Deviation_top == Percentage_wOpen_pwOpen_deviation_top ? Warning_Color_Weekly : na
+wOpen_pwOpen_Deviation_top_TX_color   =  range_value_wOpen_pwOpen_Deviation_top == Percentage_wOpen_pwOpen_deviation_top ? Text_Color_inverse : Text_Color_Label
+wOpen_pwOpen_Deviation_top_price_line = wOpen_pwOpen_Deviation_top and showline_dynamic_Weekly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], wOpen_pwOpen_Deviation_top, time + 1, wOpen_pwOpen_Deviation_top, color=wOpen_pwOpen_Deviation_top_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_week) : na
+line.delete(wOpen_pwOpen_Deviation_top_price_line[1])
+wOpen_pwOpen_Deviation_top_label = wOpen_pwOpen_Deviation_top and showline_dynamic_Weekly and showlabel_dynamic_weekly ? label.new(time + (100000*Shift3), wOpen_pwOpen_Deviation_top ,str.tostring(truncate(wOpen_pwOpen_Deviation_top,2)) + ' | '+'wOpen-pwOpen-Deviatio', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=wOpen_pwOpen_Deviation_top_BG_color, size=TextSize_Labels):na
+label.delete(wOpen_pwOpen_Deviation_top_label[1])
+
+range_value_wOpen_pwOpen_Deviation_bot = percentage_range(Percentage_wOpen_pwOpen_deviation_bot, -Warning_Weekly_levels, +Warning_Weekly_levels)
+wOpen_pwOpen_Deviation_BG_color   =  range_value_wOpen_pwOpen_Deviation_bot == Percentage_wOpen_pwOpen_deviation_bot ? Warning_Color_Weekly : na
+wOpen_pwOpen_Deviation_TX_color   =  range_value_wOpen_pwOpen_Deviation_bot == Percentage_wOpen_pwOpen_deviation_bot ? Text_Color_inverse : Text_Color_Label
+wOpen_pwOpen_Deviation_price_line = wOpen_pwOpen_Deviation and showline_dynamic_Weekly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], wOpen_pwOpen_Deviation, time + 1, wOpen_pwOpen_Deviation, color=wOpen_pwOpen_Deviation_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_week) : na
+line.delete(wOpen_pwOpen_Deviation_price_line[1])
+wOpen_pwOpen_Deviation_label = wOpen_pwOpen_Deviation and showline_dynamic_Weekly and showlabel_dynamic_weekly ? label.new(time + (100000*Shift3), wOpen_pwOpen_Deviation ,str.tostring(truncate(wOpen_pwOpen_Deviation,2)) + ' | '+'wOpen-pwOpen Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=wOpen_pwOpen_Deviation_BG_color , size=TextSize_Labels):na
+label.delete(wOpen_pwOpen_Deviation_label[1])
+
+/////////MONTHLY RELATED TRIGGERS AND LINES////////
+/////////MONTHLY RELATED TRIGGERS AND LINES////////
+range_value_mOpen = percentage_range(Percentage_mOpen, -Warning_Monthly_levels, +Warning_Monthly_levels)
+mOpen_BG_color   =  range_value_mOpen == Percentage_mOpen ? Warning_Color_Monthly__Levels : na
+mOpen_TX_color   =  range_value_mOpen == Percentage_mOpen ? Text_Color_inverse : Text_Color_Label
+mOpen_TX_color2   =  range_value_mOpen == Percentage_mOpen ? Text_Color_Label_active : na
+mOpen_price_line = mOpen and showline_dynamic_monthly and show_w_m_q_Open and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], mOpen, time + 1, mOpen, color=mOpen_BG_color      , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_month) : na
+line.delete(mOpen_price_line[1])
+mOpen_price_label = mOpen and showline_dynamic_monthly and showlabel_dynamic_monthly ? label.new(time + (100000*Shift3), mOpen ,str.tostring(truncate(mOpen,2)) + ' | '+'mOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=mOpen_TX_color2 , size=TextSize_Labels):na
+label.delete(mOpen_price_label[1])
+
+range_value_pmOpen = percentage_range(Percentage_pmOpen, -Warning_Monthly_levels, +Warning_Monthly_levels)
+pmOpen_BG_color   =  range_value_pmOpen == Percentage_pmOpen ? Warning_Color_Monthly__Levels : na
+pmOpen_TX_color   =  range_value_pmOpen == Percentage_pmOpen ? Text_Color_inverse : Text_Color_Label
+pmOpen_TX_color2   =  range_value_pmOpen == Percentage_pmOpen ? Text_Color_Label_active : na
+pmOpen_price_line = pmOpen and showline_dynamic_monthly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pmOpen, time + 1, pmOpen, color=pmOpen_BG_color        , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_month) : na
+line.delete(pmOpen_price_line[1])
+pmOpen_price_label = pmOpen and showline_dynamic_monthly and showlabel_dynamic_monthly ? label.new(time + (100000*Shift3),pmOpen ,str.tostring(truncate(pmOpen,2)) + ' | '+'pmOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pmOpen_TX_color2 , size=TextSize_Labels):na
+label.delete(pmOpen_price_label[1])
+
+range_value_pmOpen_to_mOpen_mean_price = percentage_range(Percentage_pmOpen_to_mOpen_mean_price, -Warning_Monthly_levels, +Warning_Monthly_levels)
+pmOpen_to_mOpen_mean_price_BG_color = range_value_pmOpen_to_mOpen_mean_price == Percentage_pmOpen_to_mOpen_mean_price ? Warning_Color_Monthly__Levels : na
+pmOpen_to_mOpen_mean_price_TX_color = range_value_pmOpen_to_mOpen_mean_price == Percentage_pmOpen_to_mOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+pmOpen_to_mOpen_mean_price_price_line = pmOpen_to_mOpen_mean_price and showline_dynamic_monthly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pmOpen_to_mOpen_mean_price, time + 1, pmOpen_to_mOpen_mean_price, color=pmOpen_to_mOpen_mean_price_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_month) : na
+line.delete(pmOpen_to_mOpen_mean_price_price_line[1])
+pmOpen_to_mOpen_mean_price_label = pmOpen_to_mOpen_mean_price and showline_dynamic_monthly and showlabel_dynamic_monthly ? label.new(time + (100000*Shift3),pmOpen_to_mOpen_mean_price ,str.tostring(truncate(pmOpen_to_mOpen_mean_price,2)) + ' | '+'pmOpen-mOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pmOpen_to_mOpen_mean_price_BG_color , size=TextSize_Labels):na
+label.delete(pmOpen_to_mOpen_mean_price_label[1])
+
+range_value_mOpen_pmOpen_Deviation_top = percentage_range(Percentage_mOpen_pmOpen_deviation_top, -Warning_Monthly_levels, +Warning_Monthly_levels)
+mOpen_pmOpen_Deviation_top_BG_color = range_value_mOpen_pmOpen_Deviation_top == Percentage_mOpen_pmOpen_deviation_top ? Warning_Color_Monthly__Levels : na
+mOpen_pmOpen_Deviation_top_TX_color = range_value_mOpen_pmOpen_Deviation_top == Percentage_mOpen_pmOpen_deviation_top ? Text_Color_inverse : Text_Color_Label
+mOpen_pmOpen_Deviation_top_price_line = mOpen_pmOpen_Deviation_top and showline_dynamic_monthly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], mOpen_pmOpen_Deviation_top, time + 1, mOpen_pmOpen_Deviation_top, color=mOpen_pmOpen_Deviation_top_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_month) : na
+line.delete(mOpen_pmOpen_Deviation_top_price_line[1])
+mOpen_pmOpen_Deviation_top_price_label = mOpen_pmOpen_Deviation_top and showline_dynamic_monthly and showlabel_dynamic_monthly ? label.new(time + (100000*Shift3),mOpen_pmOpen_Deviation_top ,str.tostring(truncate(mOpen_pmOpen_Deviation_top,2)) + ' | '+'mOpen-pmOpen Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=mOpen_pmOpen_Deviation_top_BG_color  , size=TextSize_Labels):na
+label.delete(mOpen_pmOpen_Deviation_top_price_label[1])
+
+range_value_mOpen_pmOpen_Deviation = percentage_range(Percentage_mOpen_pmOpen_deviation_bot, -Warning_Monthly_levels, +Warning_Monthly_levels)
+mOpen_pmOpen_Deviation_BG_color = range_value_mOpen_pmOpen_Deviation == Percentage_mOpen_pmOpen_deviation_bot ? Warning_Color_Monthly__Levels : na
+mOpen_pmOpen_Deviation_TX_color = range_value_mOpen_pmOpen_Deviation == Percentage_mOpen_pmOpen_deviation_bot ? Text_Color_inverse : Text_Color_Label
+mOpen_pmOpen_Deviation_price_line = mOpen_pmOpen_Deviation and showline_dynamic_monthly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], mOpen_pmOpen_Deviation, time + 1, mOpen_pmOpen_Deviation, color=mOpen_pmOpen_Deviation_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_month) : na
+line.delete(mOpen_pmOpen_Deviation_price_line[1])
+mOpen_pmOpen_Deviation_label = mOpen_pmOpen_Deviation and showline_dynamic_monthly and showlabel_dynamic_monthly ? label.new(time + (100000*Shift3),mOpen_pmOpen_Deviation ,str.tostring(truncate(mOpen_pmOpen_Deviation,2)) + ' | '+'pmOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=mOpen_pmOpen_Deviation_BG_color, size=TextSize_Labels):na
+label.delete(mOpen_pmOpen_Deviation_label[1])
+
+/////////QUARTERLY RELATED TRIGGERS AND LINES////////
+range_value_qOpen = percentage_range(Percentage_qOpen, -Warning_Quarterly_levels, +Warning_Quarterly_levels)
+qOpen_BG_color   =  range_value_qOpen == Percentage_qOpen ? Warning_Color_Quarterly__Levels : na
+qOpen_TX_color   =  range_value_qOpen == Percentage_qOpen ? Text_Color_inverse : Text_Color_Label
+qOpen_TX_color2   =  range_value_qOpen == Percentage_qOpen ? Text_Color_Label_active : na
+qOpen_price_line = qOpen and showline_dynamic_quarterly and show_w_m_q_Open and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], qOpen, time + 1, qOpen, color=qOpen_BG_color  , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_Quarterly) : na
+line.delete(qOpen_price_line[1])
+qOpen_price_label = qOpen and showline_dynamic_quarterly and showlabel_dynamic_quarterly ? label.new(time + (100000*Shift4),qOpen ,str.tostring(truncate(qOpen,2)) + ' | '+'qOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=qOpen_TX_color2 , size=TextSize_Labels):na
+label.delete(qOpen_price_label[1])
+
+range_value_pqOpen = percentage_range(Percentage_pqOpen, -Warning_Quarterly_levels, +Warning_Quarterly_levels)
+pqOpen_BG_color   =  range_value_pqOpen == Percentage_pqOpen ? Warning_Color_Quarterly__Levels : na
+pqOpen_TX_color   =  range_value_pqOpen == Percentage_pqOpen ? Text_Color_inverse : Text_Color_Label
+pqOpen_TX_color2   =  range_value_pqOpen == Percentage_pqOpen ? Text_Color_Label_active : na
+pqOpen_price_line = pqOpen and showline_dynamic_quarterly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pqOpen, time + 1, pqOpen, color=pqOpen_BG_color        , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_Quarterly) : na
+line.delete(pqOpen_price_line[1])
+pqOpen_price_label = pqOpen and showline_dynamic_quarterly and showlabel_dynamic_quarterly ? label.new(time + (100000*Shift4),pqOpen ,str.tostring(truncate(pqOpen,2)) + ' | '+'pqOpen', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=pqOpen_TX_color2  , size=TextSize_Labels):na
+label.delete(pqOpen_price_label[1])
+
+pqOpen_to_qOpen_mean_Trigger = close < (pqOpen_to_qOpen_mean_price + Warning_Quarterly_levels) and close > (pqOpen_to_qOpen_mean_price - Warning_Quarterly_levels)
+pqOpen_to_qOpen_mean_price_BG_color     = close >= pqOpen_to_qOpen_mean_price ? na : pqOpen_to_qOpen_mean_Trigger ? Warning_Color_Quarterly__Levels : na
+pqOpen_to_qOpen_mean_price_TX_color     = close >= pqOpen_to_qOpen_mean_price ? na : pqOpen_to_qOpen_mean_Trigger ? Text_Color_inverse : Text_Color_Label
+pqOpen_to_qOpen_mean_price_TX_color2     = close >= pqOpen_to_qOpen_mean_price ? na : pqOpen_to_qOpen_mean_Trigger ? Text_Color_Label_active : na
+pqOpen_to_qOpen_mean_price_price_line = pqOpen_to_qOpen_mean_price and showline_dynamic_quarterly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pqOpen_to_qOpen_mean_price, time + 1, pqOpen_to_qOpen_mean_price, color=pqOpen_to_qOpen_mean_price_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_Quarterly) : na
+line.delete(pqOpen_to_qOpen_mean_price_price_line[1])
+pqOpen_to_qOpen_mean_price_label = pqOpen_to_qOpen_mean_price and showline_dynamic_quarterly and showlabel_dynamic_quarterly ? label.new(time + (100000*Shift4),pqOpen_to_qOpen_mean_price ,str.tostring(truncate(pqOpen_to_qOpen_mean_price,2)) + ' | '+'pqOpen-qOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pqOpen_to_qOpen_mean_price_TX_color2 , size=TextSize_Labels):na
+label.delete(pqOpen_to_qOpen_mean_price_label[1])
+
+range_value_qOpen_to_mHigh_mean_price = percentage_range(Percentage_qOpen_to_mHigh_mean_price, -Warning_Quarterly_levels, +Warning_Quarterly_levels)
+qOpen_to_mHigh_mean_price_BG_color   =  range_value_qOpen_to_mHigh_mean_price == Percentage_qOpen_to_mHigh_mean_price ? Warning_Color_Quarterly__Levels : na
+qOpen_to_mHigh_mean_price_TX_color   =  range_value_qOpen_to_mHigh_mean_price == Percentage_qOpen_to_mHigh_mean_price ? Text_Color_inverse : Text_Color_Label
+qOpen_to_mHigh_mean_price_TX_color2   =  range_value_qOpen_to_mHigh_mean_price == Percentage_qOpen_to_mHigh_mean_price ? Text_Color_Label_active : na
+qOpen_to_mHigh_mean_price_price_line = qOpen_to_mHigh_mean_price and showline_dynamic_quarterly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], qOpen_to_mHigh_mean_price, time + 1, qOpen_to_mHigh_mean_price, color=qOpen_to_mHigh_mean_price_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_Quarterly) : na
+line.delete(qOpen_to_mHigh_mean_price_price_line[1])
+qOpen_to_mHigh_mean_price_price_label = qOpen_to_mHigh_mean_price and showline_dynamic_quarterly and showlabel_dynamic_quarterly ? label.new(time + (100000*Shift4),qOpen_to_mHigh_mean_price ,str.tostring(truncate(qOpen_to_mHigh_mean_price,2)) + ' | '+'qOpen-mHigh mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=qOpen_to_mHigh_mean_price_TX_color2, size=TextSize_Labels):na
+label.delete(qOpen_to_mHigh_mean_price_price_label[1])
+
+range_value_qOpen_to_mLow_mean_price = percentage_range(Percentage_qOpen_to_mLow_mean_price, -Warning_Quarterly_levels, +Warning_Quarterly_levels)
+qOpen_to_mLow_mean_price_BG_color   =  range_value_qOpen_to_mLow_mean_price == Percentage_qOpen_to_mLow_mean_price ? Warning_Color_Quarterly__Levels : na
+qOpen_to_mLow_mean_price_TX_color   =  range_value_qOpen_to_mLow_mean_price == Percentage_qOpen_to_mLow_mean_price ? Text_Color_inverse : Text_Color_Label
+qOpen_to_mLow_mean_price_TX_color2   =  range_value_qOpen_to_mLow_mean_price == Percentage_qOpen_to_mLow_mean_price ? Text_Color_Label_active : na
+qOpen_to_mLow_mean_price_price_line = qOpen_to_mLow_mean_price and showline_dynamic_quarterly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], qOpen_to_mLow_mean_price, time + 1, qOpen_to_mLow_mean_price, color=qOpen_to_mLow_mean_price_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_Quarterly) : na
+line.delete(qOpen_to_mLow_mean_price_price_line[1])
+qOpen_to_mLow_mean_price_price_label = qOpen_to_mLow_mean_price and showline_dynamic_quarterly and showlabel_dynamic_quarterly ? label.new(time + (100000*Shift4),qOpen_to_mLow_mean_price ,str.tostring(truncate(qOpen_to_mLow_mean_price,2)) + ' | '+'qOpen-mLow mean', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=qOpen_to_mLow_mean_price_TX_color2, size=TextSize_Labels):na
+label.delete(qOpen_to_mLow_mean_price_price_label[1])
+
+/////////YEARLY RELATED TRIGGERS AND LINES////////
+range_value_yOpen = percentage_range(Percentage_yOpen, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_BG_color   =  range_value_yOpen == Percentage_yOpen ? Warning_Color_yearly_Levels : na
+yOpen_TX_color   =  range_value_yOpen == Percentage_yOpen ? Text_Color_inverse : Text_Color_Label
+yOpen_TX_color2   =  range_value_yOpen == Percentage_yOpen ? Text_Color_Label_active : na
+yOpen_price_line = yOpen and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], yOpen, time + 1, yOpen, color=yOpen_BG_color   , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_price_line[1])
+yOpen_label = yOpen and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), yOpen ,str.tostring(truncate(yOpen,2)) + ' | '+'yOpen', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_TX_color2, size=TextSize_Labels):na
+label.delete(yOpen_label[1])
+
+range_value_yHigh = percentage_range(Percentage_yHigh, -Warning_yearly_levels, +Warning_yearly_levels)
+yHigh_BG_color   =  range_value_yHigh == Percentage_yHigh ? Warning_Color_yearly_Levels : na
+yHigh_TX_color   =  range_value_yHigh == Percentage_yHigh ? Text_Color_inverse : Text_Color_Label
+yHigh_TX_color2   =  range_value_yHigh == Percentage_yHigh ? Text_Color_Label_active : na
+yHigh_price_line = yHigh and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], yHigh, time + 1, yHigh, color=yHigh_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yHigh_price_line[1])
+yHigh_label = yHigh and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), yHigh ,str.tostring(truncate(yHigh,2)) + ' | '+'yHigh', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yHigh_TX_color2 , size=TextSize_Labels):na
+label.delete(yHigh_label[1])
+
+range_value_yLow = percentage_range(Percentage_yLow, -Warning_yearly_levels, +Warning_yearly_levels)
+yLow_BG_color   =  range_value_yLow == Percentage_yLow ? Warning_Color_yearly_Levels : na
+yLow_TX_color   =  range_value_yLow == Percentage_yLow ? Text_Color_inverse : Text_Color_Label
+yLow_TX_color2   =  range_value_yLow == Percentage_yLow ? Text_Color_Label_active : na
+yLow_price_line = yLow and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], yLow, time + 1, yLow, color=yLow_BG_color , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yLow_price_line[1])
+yLow_label = yLow and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), yLow ,str.tostring(truncate(yLow,2)) + ' | '+'yLow', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=yLow_TX_color2, size=TextSize_Labels):na
+label.delete(yLow_label[1])
+
+range_value_pyOpen = percentage_range(Percentage_pyOpen, -Warning_yearly_levels, +Warning_yearly_levels)
+pyOpen_BG_color   =  range_value_pyOpen == Percentage_pyOpen ? Warning_Color_yearly_Levels : na
+pyOpen_TX_color   =  range_value_pyOpen == Percentage_pyOpen ? Text_Color_inverse : Text_Color_Label
+pyOpen_TX_color2   =  range_value_pyOpen == Percentage_pyOpen ? Text_Color_Label_active : na
+pyOpen_price_line = pyOpen and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pyOpen, time + 1, pyOpen, color=pyOpen_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(pyOpen_price_line[1])
+pyOpen_label = pyOpen and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), pyOpen ,str.tostring(truncate(pyOpen,2)) + ' | '+'pyOpen', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=pyOpen_TX_color2, size=TextSize_Labels):na
+label.delete(pyOpen_label[1])
+
+range_value_pyHigh = percentage_range(Percentage_pyHigh, -Warning_yearly_levels, +Warning_yearly_levels)
+pyHigh_BG_color   =  range_value_pyHigh == Percentage_pyHigh ? Warning_Color_yearly_Levels : na
+pyHigh_TX_color   =  range_value_pyHigh == Percentage_pyHigh ? Text_Color_inverse : Text_Color_Label
+pyHigh_TX_color2   =  range_value_pyHigh == Percentage_pyHigh ? Text_Color_Label_active : na
+pyHigh_price_line = pyHigh and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pyHigh, time + 1, pyHigh, color=pyHigh_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(pyHigh_price_line[1])
+pyHigh_label = pyHigh and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), pyHigh ,str.tostring(truncate(pyHigh,2)) + ' | '+'pyHigh', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pyHigh_TX_color2, size=TextSize_Labels):na
+label.delete(pyHigh_label[1])
+
+range_value_pyLow = percentage_range(Percentage_pyLow, -Warning_yearly_levels, +Warning_yearly_levels)
+pyLow_BG_color   =  range_value_pyLow == Percentage_pyLow ? Warning_Color_yearly_Levels : na
+pyLow_TX_color   =  range_value_pyLow == Percentage_pyLow ? Text_Color_inverse : Text_Color_Label
+pyLow_TX_color2   =  range_value_pyLow == Percentage_pyLow ? Text_Color_Label_active : na
+pyLow_price_line = pyLow and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pyLow, time + 1, pyLow, color=pyLow_BG_color , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(pyLow_price_line[1])
+pyLow_label = pyLow and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), pyLow ,str.tostring(truncate(pyLow,2)) + ' | '+'pyLow', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pyLow_TX_color2, size=TextSize_Labels):na
+label.delete(pyLow_label[1])
+
+range_value_yOpen_to_qOpen_mean_price = percentage_range(Percentage_yOpen_to_qOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_to_qOpen_mean_BG_color =range_value_yOpen_to_qOpen_mean_price == Percentage_yOpen_to_qOpen_mean_price ? Warning_Color_yearly_Levels : na
+yOpen_to_qOpen_mean_TX_color =range_value_yOpen_to_qOpen_mean_price == Percentage_yOpen_to_qOpen_mean_price ? Text_Color_inverse :Text_Color_Label
+yOpen_to_qOpen_mean_TX_color2 =range_value_yOpen_to_qOpen_mean_price == Percentage_yOpen_to_qOpen_mean_price ? Text_Color_Label_active : na
+yOpen_to_qOpen_mean_price_price_line = yOpen_to_qOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], yOpen_to_qOpen_mean_price, time + 1, yOpen_to_qOpen_mean_price, color=yOpen_to_qOpen_mean_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_to_qOpen_mean_price_price_line[1])
+yOpen_to_qOpen_mean_price_label = yOpen_to_qOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), yOpen_to_qOpen_mean_price ,str.tostring(truncate(yOpen_to_qOpen_mean_price,2)) + ' | '+'yOpen-qOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=yOpen_to_qOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yOpen_to_qOpen_mean_price_label[1])
+
+range_value_pyOpen_to_yOpen_mean_price = percentage_range(Percentage_pyOpen_to_yOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+pyOpen_to_yOpen_mean_price_BG_color   =  range_value_pyOpen_to_yOpen_mean_price == Percentage_pyOpen_to_yOpen_mean_price ? Warning_Color_yearly_Levels : na
+pyOpen_to_yOpen_mean_price_TX_color   =  range_value_pyOpen_to_yOpen_mean_price == Percentage_pyOpen_to_yOpen_mean_price ? Warning_Color_yearly_Levels : Text_Color_Label
+pyOpen_to_yOpen_mean_price_TX_color2   =  range_value_pyOpen_to_yOpen_mean_price == Percentage_pyOpen_to_yOpen_mean_price ? Text_Color_Label_active : na
+pyOpen_to_yOpen_mean_price_price_line = pyOpen_to_yOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], pyOpen_to_yOpen_mean_price, time + 1, pyOpen_to_yOpen_mean_price, color=pyOpen_to_yOpen_mean_price_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(pyOpen_to_yOpen_mean_price_price_line[1])
+pyOpen_to_yOpen_mean_price_label = pyOpen_to_yOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), pyOpen_to_yOpen_mean_price ,str.tostring(truncate(pyOpen_to_yOpen_mean_price,2)) + ' | '+'pyOpen-yOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pyOpen_to_yOpen_mean_price_TX_color2, size=TextSize_Labels):na
+label.delete(pyOpen_to_yOpen_mean_price_label[1])
+
+range_value_yLow_to_mOpen_mean_price = percentage_range(Percentage_yLow_to_mOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yLow_to_mOpen_mean_BG_color   =  range_value_yLow_to_mOpen_mean_price == Percentage_yLow_to_mOpen_mean_price ? Warning_Color_yearly_Levels : na
+yLow_to_mOpen_mean_TX_color   =  range_value_yLow_to_mOpen_mean_price == Percentage_yLow_to_mOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yLow_to_mOpen_mean_TX_color2   =  range_value_yLow_to_mOpen_mean_price == Percentage_yLow_to_mOpen_mean_price ? Text_Color_Label_active : na
+yLow_to_mOpen_mean_price_price_line = yLow_to_mOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], yLow_to_mOpen_mean_price, time + 1, yLow_to_mOpen_mean_price, color=yLow_to_mOpen_mean_BG_color, xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yLow_to_mOpen_mean_price_price_line[1])
+yLow_to_mOpen_mean_price_label = yLow_to_mOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2), yLow_to_mOpen_mean_price ,str.tostring(truncate(yLow_to_mOpen_mean_price,2)) + ' | '+'yLow-mOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left, color=color.new(color.white,100),textcolor=yLow_to_mOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yLow_to_mOpen_mean_price_label[1])
+
+range_value_yLow_to_pmOpen_mean_price = percentage_range(Percentage_yLow_to_pmOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yLow_to_pmOpen_mean_BG_color   =  range_value_yLow_to_pmOpen_mean_price == Percentage_yLow_to_pmOpen_mean_price ? Warning_Color_yearly_Levels : na
+yLow_to_pmOpen_mean_TX_color   =  range_value_yLow_to_pmOpen_mean_price == Percentage_yLow_to_pmOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yLow_to_pmOpen_mean_TX_color2   =  range_value_yLow_to_pmOpen_mean_price == Percentage_yLow_to_pmOpen_mean_price ? Text_Color_Label_active : na
+yLow_to_pmOpen_mean_price_price_line = yLow_to_pmOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yLow_to_pmOpen_mean_price, time + 1, yLow_to_pmOpen_mean_price, color=yLow_to_pmOpen_mean_BG_color         , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yLow_to_pmOpen_mean_price_price_line[1])
+yLow_to_pmOpen_mean_price_label = yLow_to_mOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yLow_to_pmOpen_mean_price ,str.tostring(truncate(yLow_to_pmOpen_mean_price,2)) + ' | '+'yLow-pmOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yLow_to_pmOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yLow_to_pmOpen_mean_price_label[1])
+
+range_value_yOpen_to_mOpen_mean_price = percentage_range(Percentage_yOpen_to_mOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_to_mOpen_mean_BG_color   =  range_value_yOpen_to_mOpen_mean_price == Percentage_yOpen_to_mOpen_mean_price ? Warning_Color_yearly_Levels : na
+yOpen_to_mOpen_mean_TX_color   =  range_value_yOpen_to_mOpen_mean_price == Percentage_yOpen_to_mOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yOpen_to_mOpen_mean_TX_color2   =  range_value_yOpen_to_mOpen_mean_price == Percentage_yOpen_to_mOpen_mean_price ? Text_Color_Label_active : na
+yOpen_to_mOpen_mean_price_line = yOpen_to_mOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yOpen_to_mOpen_mean_price, time + 1, yOpen_to_mOpen_mean_price, color=yOpen_to_mOpen_mean_BG_color         , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_to_mOpen_mean_price_line[1])
+yOpen_to_mOpen_mean_price_label = yOpen_to_mOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yOpen_to_mOpen_mean_price ,str.tostring(truncate(yOpen_to_mOpen_mean_price,2)) + ' | '+'yOpen-mOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_to_mOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yOpen_to_mOpen_mean_price_label[1])
+
+range_value_yHigh_to_mOpen_mean_price = percentage_range(Percentage_yHigh_to_mOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yHigh_to_mOpen_mean_BG_color   =  range_value_yHigh_to_mOpen_mean_price == Percentage_yHigh_to_mOpen_mean_price ? Warning_Color_yearly_Levels : na
+yHigh_to_mOpen_mean_TX_color   =  range_value_yHigh_to_mOpen_mean_price == Percentage_yHigh_to_mOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yHigh_to_mOpen_mean_TX_color2   =  range_value_yHigh_to_mOpen_mean_price == Percentage_yHigh_to_mOpen_mean_price ? Text_Color_Label_active : na
+yHigh_to_mOpen_mean_price_line = yHigh_to_mOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yHigh_to_mOpen_mean_price, time + 1, yHigh_to_mOpen_mean_price, color=yHigh_to_mOpen_mean_BG_color         , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yHigh_to_mOpen_mean_price_line[1])
+yHigh_to_mOpen_mean_price_label = yHigh_to_mOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yHigh_to_mOpen_mean_price ,str.tostring(truncate(yHigh_to_mOpen_mean_price,2)) + ' | '+'yHigh-mOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yHigh_to_mOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yHigh_to_mOpen_mean_price_label[1])
+
+range_value_yHigh_to_pmOpen_mean = percentage_range(Percentage_yHigh_to_pmOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yHigh_to_pmOpen_mean_BG_color   =  range_value_yHigh_to_pmOpen_mean == Percentage_yHigh_to_pmOpen_mean_price ? Warning_Color_yearly_Levels : na
+yHigh_to_pmOpen_mean_TX_color   =  range_value_yHigh_to_pmOpen_mean == Percentage_yHigh_to_pmOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yHigh_to_pmOpen_mean_TX_color2   =  range_value_yHigh_to_pmOpen_mean == Percentage_yHigh_to_pmOpen_mean_price ? Text_Color_Label_active : na
+yHigh_to_pmOpen_mean_price_line = yHigh_to_pmOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yHigh_to_pmOpen_mean_price, time + 1, yHigh_to_pmOpen_mean_price, color=yHigh_to_pmOpen_mean_BG_color         , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yHigh_to_pmOpen_mean_price_line[1])
+yHigh_to_pmOpen_mean_price_label = yHigh_to_pmOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yHigh_to_pmOpen_mean_price ,str.tostring(truncate(yHigh_to_pmOpen_mean_price,2)) + ' | '+'yHigh-mOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yHigh_to_pmOpen_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yHigh_to_pmOpen_mean_price_label[1])
+
+range_value_pyHigh_to_yLow_mean_price = percentage_range(Percentage_pyHigh_to_yLow_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+pyHigh_to_yLow_mean_BG_color   =  range_value_pyHigh_to_yLow_mean_price == Percentage_pyHigh_to_yLow_mean_price ? Warning_Color_yearly_Levels : na
+pyHigh_to_yLow_mean_TX_color   =  range_value_pyHigh_to_yLow_mean_price == Percentage_pyHigh_to_yLow_mean_price ? Text_Color_inverse : Text_Color_Label
+pyHigh_to_yLow_mean_TX_color2   =  range_value_pyHigh_to_yLow_mean_price == Percentage_pyHigh_to_yLow_mean_price ? Text_Color_Label_active : na
+pyHigh_to_yLow_mean_price_line = pyHigh_to_yLow_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],pyHigh_to_yLow_mean_price, time + 1, pyHigh_to_yLow_mean_price, color=pyHigh_to_yLow_mean_BG_color        , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(pyHigh_to_yLow_mean_price_line[1])
+pyHigh_to_yLow_mean_price_label = pyHigh_to_yLow_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),pyHigh_to_yLow_mean_price ,str.tostring(truncate(pyHigh_to_yLow_mean_price,2)) + ' | '+'pyHigh-yLow mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=pyHigh_to_yLow_mean_TX_color2 , size=TextSize_Labels):na
+label.delete(pyHigh_to_yLow_mean_price_label[1])
+
+range_value_yHigh_to_yOpen_mean_price = percentage_range(Percentage_yHigh_to_yOpen_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yHigh_to_yOpen_mean_BG_color   =  range_value_yHigh_to_yOpen_mean_price == Percentage_yHigh_to_yOpen_mean_price ? Warning_Color_yearly_Levels : na
+yHigh_to_yOpen_mean_TX_color   =  range_value_yHigh_to_yOpen_mean_price == Percentage_yHigh_to_yOpen_mean_price ? Text_Color_inverse : Text_Color_Label
+yHigh_to_yOpen_mean_TX_color2   =  range_value_yHigh_to_yOpen_mean_price == Percentage_yHigh_to_yOpen_mean_price ? Text_Color_Label_active : na
+yHigh_to_yOpen_mean_price_line = yHigh_to_yOpen_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yHigh_to_yOpen_mean_price, time + 1, yHigh_to_yOpen_mean_price, color=yHigh_to_yOpen_mean_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yHigh_to_yOpen_mean_price_line[1])
+yHigh_to_yOpen_mean_price_label = yHigh_to_yOpen_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yHigh_to_yOpen_mean_price ,str.tostring(truncate(yHigh_to_yOpen_mean_price,2)) + ' | '+'yHigh-yOpen mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yHigh_to_yOpen_mean_TX_color2 , size=TextSize_Labels):na
+label.delete(yHigh_to_yOpen_mean_price_label[1])
+
+range_value_yOpen_to_pyLow_mean_price = percentage_range(Percentage_yOpen_to_pyLow_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_to_pyLow_mean_BG_color   =  range_value_yOpen_to_pyLow_mean_price == Percentage_yOpen_to_pyLow_mean_price ? Warning_Color_yearly_Levels : na
+yOpen_to_pyLow_mean_TX_color   =  range_value_yOpen_to_pyLow_mean_price == Percentage_yOpen_to_pyLow_mean_price ? Text_Color_inverse : Text_Color_Label
+yOpen_to_pyLow_mean_TX_color2   =  range_value_yOpen_to_pyLow_mean_price == Percentage_yOpen_to_pyLow_mean_price ? Text_Color_Label_active : na
+yOpen_to_pyLow_mean_price_price_line = yOpen_to_pyLow_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yOpen_to_pyLow_mean_price, time + 1, yOpen_to_pyLow_mean_price, color=yOpen_to_pyLow_mean_BG_color       , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_to_pyLow_mean_price_price_line[1])
+yOpen_to_pyLow_mean_price_label = yOpen_to_pyLow_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yOpen_to_pyLow_mean_price ,str.tostring(truncate(yOpen_to_pyLow_mean_price,2)) + ' | '+'yOpen-pyLow_mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_to_pyLow_mean_TX_color2 , size=TextSize_Labels):na
+label.delete(yOpen_to_pyLow_mean_price_label[1])
+
+range_value_yOpen_to_yLow_mean_price = percentage_range(Percentage_yOpen_to_yLow_mean_price, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_to_yLow_mean_BG_color   =  range_value_yOpen_to_yLow_mean_price == Percentage_yOpen_to_yLow_mean_price ? Warning_Color_yearly_Levels : na
+yOpen_to_yLow_mean_TX_color   =  range_value_yOpen_to_yLow_mean_price == Percentage_yOpen_to_yLow_mean_price ? Text_Color_inverse : Text_Color_Label
+yOpen_to_yLow_mean_TX_color2   =  range_value_yOpen_to_yLow_mean_price == Percentage_yOpen_to_yLow_mean_price ? Text_Color_Label_active : na
+yOpen_to_yLow_mean_price_price_line = yOpen_to_yLow_mean_price and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yOpen_to_yLow_mean_price, time + 1, yOpen_to_yLow_mean_price, color=yOpen_to_yLow_mean_BG_color      , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_to_yLow_mean_price_price_line[1])
+yOpen_to_yLow_mean_price_label = yOpen_to_yLow_mean_price and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yOpen_to_yLow_mean_price ,str.tostring(truncate(yOpen_to_yLow_mean_price,2)) + ' | '+'yOpen-yLow mean', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_to_yLow_mean_TX_color2, size=TextSize_Labels):na
+label.delete(yOpen_to_yLow_mean_price_label[1])
+
+range_value_yOpen_pyOpen_Deviation = percentage_range(Percentage_yOpen_pyOpen_deviation_bot, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_pyOpen_Deviation_BG_color   =  range_value_yOpen_pyOpen_Deviation == Percentage_yOpen_pyOpen_deviation_bot ? Warning_Color_yearly_Levels : na
+yOpen_pyOpen_Deviation_TX_color   =  range_value_yOpen_pyOpen_Deviation == Percentage_yOpen_pyOpen_deviation_bot ? Text_Color_inverse : Text_Color_Label
+yOpen_pyOpen_Deviation_TX_color2   =  range_value_yOpen_pyOpen_Deviation == Percentage_yOpen_pyOpen_deviation_bot ? Text_Color_Label_active : na
+yOpen_pyOpen_Deviation_price_line = yOpen_pyOpen_Deviation and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yOpen_pyOpen_Deviation, time + 1, yOpen_pyOpen_Deviation, color=yOpen_pyOpen_Deviation_BG_color     , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_pyOpen_Deviation_price_line[1])
+yOpen_pyOpen_Deviation_price_label = yOpen_pyOpen_Deviation and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yOpen_pyOpen_Deviation ,str.tostring(truncate(yOpen_pyOpen_Deviation,2)) + ' | '+'yOpen-pyOpen Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_pyOpen_Deviation_TX_color2 , size=TextSize_Labels):na
+label.delete(yOpen_pyOpen_Deviation_price_label[1])
+
+range_value_yOpen_pyOpen_Deviation_top = percentage_range(Percentage_yOpen_pyOpen_deviation_top, -Warning_yearly_levels, +Warning_yearly_levels)
+yOpen_pyOpen_Deviation_top_BG_color   =  range_value_yOpen_pyOpen_Deviation_top == Percentage_yOpen_pyOpen_deviation_top ? Warning_Color_yearly_Levels : na
+yOpen_pyOpen_Deviation_top_TX_color   =  range_value_yOpen_pyOpen_Deviation_top == Percentage_yOpen_pyOpen_deviation_top ? Text_Color_inverse : Text_Color_Label
+yOpen_pyOpen_Deviation_top_TX_color2   =  range_value_yOpen_pyOpen_Deviation_top == Percentage_yOpen_pyOpen_deviation_top ? Text_Color_Label_active : na
+yOpen_pyOpen_Deviation_top_price_line = yOpen_pyOpen_Deviation_top and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],yOpen_pyOpen_Deviation_top, time + 1, yOpen_pyOpen_Deviation_top, color=yOpen_pyOpen_Deviation_top_BG_color   , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(yOpen_pyOpen_Deviation_top_price_line[1])
+yOpen_pyOpen_Deviation_top_price_label = yOpen_pyOpen_Deviation_top and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),yOpen_pyOpen_Deviation_top ,str.tostring(truncate(yOpen_pyOpen_Deviation_top,2)) + ' | '+'yOpen-pyOpen Deviation', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=yOpen_pyOpen_Deviation_top_TX_color2  , size=TextSize_Labels):na
+label.delete(yOpen_pyOpen_Deviation_top_price_label[1])
+
+// /////////YEARLY AVWAPS RELATED TRIGGERS AND LINES////////
+range_value_Yearly_AVWAP = percentage_range(Percentage_Yearly_AVWAP_price, -Warning_yearly_levels, +Warning_yearly_levels)
+Yearly_AVWAP_BG_color   =  range_value_Yearly_AVWAP == Percentage_Yearly_AVWAP_price ? Warning_Color_yearly_Levels : na
+Yearly_AVWAP_TX_color   =  range_value_Yearly_AVWAP == Percentage_Yearly_AVWAP_price ? Text_Color_inverse : Text_Color_Label
+Yearly_AVWAP_TX_color2   =  range_value_Yearly_AVWAP == Percentage_Yearly_AVWAP_price ? Text_Color_Label_active : na
+Yearly_AVWAP_price_line = Yearly_AVWAP and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines], Yearly_AVWAP, time + 1, Yearly_AVWAP, color=Yearly_AVWAP_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(Yearly_AVWAP_price_line[1])
+Yearly_AVWAP_label = Yearly_AVWAP and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),Yearly_AVWAP ,str.tostring(truncate(Yearly_AVWAP,2)) + ' | '+'yAvwap', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Yearly_AVWAP_TX_color2   , size=TextSize_Labels):na
+label.delete(Yearly_AVWAP_label[1])
+
+range_value_YearlyH_AVWAP = percentage_range(Percentage_YearlyH_AVWAP_price, -Warning_yearly_levels, +Warning_yearly_levels)
+YearlyH_AVWAP_BG_color   =  range_value_YearlyH_AVWAP == Percentage_YearlyH_AVWAP_price ? Warning_Color_yearly_Levels : na
+YearlyH_AVWAP_TX_color   =  range_value_YearlyH_AVWAP == Percentage_YearlyH_AVWAP_price ? Text_Color_inverse : Text_Color_Label
+YearlyH_AVWAP_TX_color2   =  range_value_YearlyH_AVWAP == Percentage_YearlyH_AVWAP_price ? Text_Color_Label_active : na
+YearlyH_AVWAP_price_line = YearlyH_AVWAP and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],YearlyH_AVWAP, time + 1, YearlyH_AVWAP, color=YearlyH_AVWAP_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(YearlyH_AVWAP_price_line[1])
+Yearly_AVWAPH_label = YearlyH_AVWAP and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),YearlyH_AVWAP ,str.tostring(truncate(YearlyH_AVWAP,2)) + ' | '+'yHAvwap', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=YearlyH_AVWAP_TX_color2  , size=TextSize_Labels):na
+label.delete(Yearly_AVWAPH_label[1])
+
+range_value_YearlyL_AVWAP = percentage_range(Percentage_YearlyL_AVWAP_price, -Warning_yearly_levels, +Warning_yearly_levels)
+YearlyL_AVWAP_BG_color   =  range_value_YearlyL_AVWAP == Percentage_YearlyL_AVWAP_price ? Warning_Color_yearly_Levels : na
+YearlyL_AVWAP_TX_color   =  range_value_YearlyL_AVWAP == Percentage_YearlyL_AVWAP_price ? Text_Color_inverse : Text_Color_Label
+YearlyL_AVWAP_TX_color2   =  range_value_YearlyL_AVWAP == Percentage_YearlyL_AVWAP_price ? Text_Color_Label_active : na
+YearlyL_AVWAP_price_line = YearlyL_AVWAP and showline_dynamic_yearly and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],YearlyL_AVWAP, time + 1, YearlyL_AVWAP, color=YearlyL_AVWAP_BG_color           , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic_yearly) : na
+line.delete(YearlyL_AVWAP_price_line[1])
+YearlyL_AVWAP_label = YearlyL_AVWAP and showline_dynamic_yearly and showlabel_dynamic_yearly ? label.new(time + (100000*Shift2),YearlyL_AVWAP ,str.tostring(truncate(YearlyL_AVWAP,2)) + ' | '+'yLAvwap', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=YearlyL_AVWAP_TX_color2  , size=TextSize_Labels):na
+label.delete(YearlyL_AVWAP_label[1])
+
+/////////CUSTOM TRIGGERS AND LINES////////
+range_value_Upper_level_price = percentage_range(Percent_Upper_level_price, -Warning, +Warning) 
+Upper_level_BG_color =  range_value_Upper_level_price == Percent_Upper_level_price ? Warning_Color : na
+Upper_level_TX_color =  range_value_Upper_level_price == Percent_Upper_level_price ? Text_Color_inverse : Text_Color_Label
+Upper_level_TX_color2 =  range_value_Upper_level_price == Percent_Upper_level_price ? Text_Color_Label_active : na
+Upper_level_price_price_line = Upper_level_price and showline_dynamic and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],Upper_level_price, time + 1, Upper_level_price, color=Upper_level_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic) : na
+line.delete(Upper_level_price_price_line[1])
+
+Upper_level_Label = label.new(showline_dynamic ? time + ((100000*Shift6)) :na , Upper_level_price-4 ,text='' + str.tostring(Upper_Level) + ' | ' + str.tostring(Upper_level_price, format.mintick) + ' | ' + str.tostring(Percent_Upper_level_price, format.mintick) + '%', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Upper_level_TX_color2, size=TextSize_Labels)
+label.set_color(Upper_level_Label, color.new(color.white,100))
+label.delete(Upper_level_Label[1])
+
+range_value_Lower_level_price = percentage_range(Percent_Lower_level_price, -Warning, +Warning) 
+Lower_level_BG_color =  range_value_Lower_level_price == Percent_Lower_level_price ? Warning_Color : na
+Lower_level_TX_color =  range_value_Lower_level_price == Percent_Lower_level_price ? Text_Color_inverse : Text_Color_Label
+Lower_level_TX_color2 =  range_value_Lower_level_price == Percent_Lower_level_price ? Text_Color_Label_active : na
+Lower_level_price_price_line = Lower_level_price and showline_dynamic and barstate.islast ? line.new(time[Bars_back_Dynamic_lines],Lower_level_price, time + 1, Lower_level_price, color=Lower_level_BG_color          , xloc=xloc.bar_time, extend=extend.none, style=line.style_solid, width=Line_width_dynamic) : na
+line.delete(Lower_level_price_price_line[1])
+Lower_level_Label = label.new(showline_dynamic ? time + ((100000*Shift6)) :na , Lower_level_price-4 ,text='' + str.tostring(Lower_Level) + ' | ' + str.tostring(Lower_level_price, format.mintick) + ' | ' + str.tostring(Percent_Lower_level_price, format.mintick) + '%', xloc=xloc.bar_time ,  style=label.style_label_left,color=color.new(color.white,100), textcolor=Lower_level_TX_color2, size=TextSize_Labels)
+label.set_color(Lower_level_Label, color.new(color.white,100))
+label.delete(Lower_level_Label[1]) 
+
+//-------WARNING TRIGGERS END------------//
+show5 = timeframe.period == '20' or timeframe.period == '30'  or timeframe.period == '60'or timeframe.period == '240'or timeframe.period == 'D'or timeframe.period == 'W'
+//-------CONFLUENCE TEST-----------------//
+Hiding_stats = input.float(0.1, 'Only show levels from "x" % away from current price',step=0.1, minval=0.1, maxval=100)
+
+t1  = Percentage_Monday_H  == percentage_range(Percentage_Monday_H, -Hiding_stats, +Hiding_stats) ? 1 : 0
+t2  = Percentage_Monday_L   == percentage_range(Percentage_Monday_L, -Hiding_stats, +Hiding_stats) ? 1 : 0
+t3  = Percentage_Monday_Mid == percentage_range(Percentage_Monday_Mid, -Hiding_stats, +Hiding_stats) ? 1 : 0
+t4  = Percentage_wOpen == percentage_range(Percentage_wOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t5  = Percentage_mOpen == percentage_range(Percentage_mOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t6  = Percentage_qOpen  == percentage_range(Percentage_qOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t7  = Percentage_yOpen == percentage_range(Percentage_yOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t8  = Percentage_yHigh  == percentage_range(Percentage_yHigh, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t9  = Percentage_yLow   == percentage_range(Percentage_yLow, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t10 = Percentage_pwOpen == percentage_range(Percentage_pwOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0  
+t11 = Percentage_pmOpen == percentage_range(Percentage_pmOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t12 = Percentage_pqOpen == percentage_range(Percentage_pqOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t13 = Percentage_pyOpen  == percentage_range(Percentage_pyOpen, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t14 = Percentage_pyHigh == percentage_range(Percentage_pyHigh, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t15 = Percentage_pyLow  == percentage_range(Percentage_pyLow, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t16 = Percentage_Monday_H_wLow_Deviation_bot    == percentage_range(Percentage_Monday_H_wLow_Deviation_bot, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t17 = Percentage_Monday_H_wLow_Deviation_top    == percentage_range(Percentage_Monday_H_wLow_Deviation_top, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t18 = Percentage_Monday_L_wHigh_Deviation_bot == percentage_range(Percentage_Monday_L_wHigh_Deviation_bot, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t19 = Percentage_Monday_L_wHigh_Deviation_top == percentage_range(Percentage_Monday_L_wHigh_Deviation_top, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t20 = Percent_Vol_node_01_price == percentage_range(Percent_Vol_node_01_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t21 = Percent_Vol_node_02_price == percentage_range(Percent_Vol_node_02_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t22 = Percent_Vol_node_03_price == percentage_range(Percent_Vol_node_03_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t23 = Percentage_wOpen_pwOpen_deviation_bot  == percentage_range(Percentage_wOpen_pwOpen_deviation_bot, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t24 = Percentage_wOpen_pwOpen_deviation_top   == percentage_range(Percentage_wOpen_pwOpen_deviation_top, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t25 = Percentage_mOpen_pmOpen_deviation_bot == percentage_range(Percentage_mOpen_pmOpen_deviation_bot, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t26 = Percentage_mOpen_pmOpen_deviation_top == percentage_range(Percentage_mOpen_pmOpen_deviation_top, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t27 = Percentage_yOpen_pyOpen_deviation_bot == percentage_range(Percentage_yOpen_pyOpen_deviation_bot, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t28 = Percentage_yOpen_pyOpen_deviation_top  == percentage_range(Percentage_yOpen_pyOpen_deviation_top, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t29 = Percentage_pmOpen_to_mOpen_mean_price  == percentage_range(Percentage_pmOpen_to_mOpen_mean_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t30 = Percentage_wOpen_to_pwOpen_mean_price  == percentage_range(Percentage_wOpen_to_pwOpen_mean_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t31 = Percentage_pqOpen_to_qOpen_mean_price == percentage_range(Percentage_pqOpen_to_qOpen_mean_price, -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t32 = Percentage_pyOpen_to_yOpen_mean_price == percentage_range(Percentage_pyOpen_to_yOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t33 = Percentage_yLow_to_mOpen_mean_price    == percentage_range(Percentage_yLow_to_mOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t34 = Percentage_yOpen_to_qOpen_mean_price   == percentage_range(Percentage_yOpen_to_qOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t35 = Percentage_qOpen_to_mHigh_mean_price   == percentage_range(Percentage_qOpen_to_mHigh_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t36 = Percentage_qOpen_to_mLow_mean_price     == percentage_range(Percentage_qOpen_to_mLow_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t37 = Percentage_yLow_to_pmOpen_mean_price   == percentage_range(Percentage_yLow_to_pmOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t38 = Percentage_yOpen_to_mOpen_mean_price   == percentage_range(Percentage_yOpen_to_mOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t39 = Percentage_yHigh_to_mOpen_mean_price   == percentage_range(Percentage_yHigh_to_mOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t40 = Percentage_yHigh_to_pmOpen_mean_price == percentage_range(Percentage_yHigh_to_pmOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t41 = Percentage_pyHigh_to_yLow_mean_price   == percentage_range(Percentage_pyHigh_to_yLow_mean_price , -Hiding_stats, +Hiding_stats)  ? 1 : 0  
+t42 = Percentage_yHigh_to_yOpen_mean_price  == percentage_range(Percentage_yHigh_to_yOpen_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0  
+t43 = Percentage_yOpen_to_pyLow_mean_price   == percentage_range(Percentage_yOpen_to_pyLow_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t44 = Percentage_yOpen_to_yLow_mean_price    == percentage_range(Percentage_yOpen_to_yLow_mean_price , -Hiding_stats, +Hiding_stats) ? 1 : 0  
+t45 = Percent_Upper_level_price     == percentage_range(Percent_Upper_level_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t46 = Percent_Lower_level_price      == percentage_range(Percent_Lower_level_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t47 = Percentage_Yearly_AVWAP_price  == percentage_range(Percentage_Yearly_AVWAP_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t48 = Percentage_YearlyH_AVWAP_price == percentage_range(Percentage_YearlyH_AVWAP_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+t49 = Percentage_YearlyL_AVWAP_price == percentage_range(Percentage_YearlyL_AVWAP_price , -Hiding_stats, +Hiding_stats) ? 1 : 0 
+
+poor_col  =color.new(color.red,80)
+fair_col  =color.new(color.green,80)
+good_col  =color.new(color.green,60)
+great_col =color.new(color.green,40)
+Super_col =color.new(color.green,20)
+
+C1 = t1+t2+t3+t4+t5+t6+t7+t8+t9+t10+t11+t12+t13+t14+t15+t16+t17+t18+t19+t20+t21+t22+t23+t24+t25+t26+t27+t28+t29+t30+t31+t32+t33+t34+t35+t36+t37+t38+t39+t40+t41+t42+t43+t44+t45+t46+t47+t48+t49
+Confluence = C1 == 1 ? 'Poor' : C1 == 2 ? 'Fair' : C1 == 3 ? 'Good' : C1 == 4 ? 'Great' : C1 == 5 ? 'Superb' : C1 == 6 ? 'Outstanding' : 'Zero'
+Confluence_col = C1 == 1 ? poor_col : C1 == 2 ? fair_col : C1 == 3 ? good_col : C1 == 4 ? great_col : C1 == 5 ? Super_col : C1 == 6 ? Super_col : na
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+show_Percentage_Monday_H =Percentage_Monday_H == percentage_range(Percentage_Monday_H, -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_Monday_L =Percentage_Monday_L == percentage_range(Percentage_Monday_L, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Monday_Mid =Percentage_Monday_Mid == percentage_range(Percentage_Monday_Mid, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_wOpen =Percentage_wOpen == percentage_range(Percentage_wOpen, -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_Range_mOpen =Percentage_mOpen == percentage_range(Percentage_mOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_qOpen =Percentage_qOpen == percentage_range(Percentage_qOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_yOpen =Percentage_yOpen == percentage_range(Percentage_yOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_yHigh =Percentage_yHigh == percentage_range(Percentage_yHigh, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_yLow =Percentage_yLow == percentage_range(Percentage_yLow, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_pwOpen =Percentage_pwOpen == percentage_range(Percentage_pwOpen, -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_Range_pmOpen =Percentage_pmOpen == percentage_range(Percentage_pmOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_pqOpen =Percentage_pqOpen == percentage_range(Percentage_pqOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_pyOpen =Percentage_pyOpen == percentage_range(Percentage_pyOpen, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_pyHigh =Percentage_pyHigh == percentage_range(Percentage_pyHigh, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Range_pyLow =Percentage_pyLow == percentage_range(Percentage_pyLow, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Monday_H_wLow_Deviation_bot = Percentage_Monday_H_wLow_Deviation_bot == percentage_range(Percentage_Monday_H_wLow_Deviation_bot, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Monday_H_wLow_Deviation_top = Percentage_Monday_H_wLow_Deviation_top == percentage_range(Percentage_Monday_H_wLow_Deviation_top, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Monday_L_wHigh_Deviation_bot = Percentage_Monday_L_wHigh_Deviation_bot == percentage_range(Percentage_Monday_L_wHigh_Deviation_bot, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Monday_L_wHigh_Deviation_top = Percentage_Monday_L_wHigh_Deviation_top == percentage_range(Percentage_Monday_L_wHigh_Deviation_top, -Hiding_Price_range, +Hiding_Price_range)
+show_Percent_Vol_node_01 = Percent_Vol_node_01_price == percentage_range(Percent_Vol_node_01_price, -Hiding_Price_range, +Hiding_Price_range)
+show_Percent_Vol_node_02 = Percent_Vol_node_02_price == percentage_range(Percent_Vol_node_02_price, -Hiding_Price_range, +Hiding_Price_range)
+show_Percent_Vol_node_03 = Percent_Vol_node_03_price == percentage_range(Percent_Vol_node_03_price, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_wOpen_pwOpen_deviation_bot = Percentage_wOpen_pwOpen_deviation_bot == percentage_range(Percentage_wOpen_pwOpen_deviation_bot, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_wOpen_pwOpen_deviation_top = Percentage_wOpen_pwOpen_deviation_top == percentage_range(Percentage_wOpen_pwOpen_deviation_top, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_mOpen_pmOpen_deviation_bot = Percentage_mOpen_pmOpen_deviation_bot == percentage_range(Percentage_mOpen_pmOpen_deviation_bot, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_mOpen_pmOpen_deviation_top = Percentage_mOpen_pmOpen_deviation_top == percentage_range(Percentage_mOpen_pmOpen_deviation_top, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yOpen_pyOpen_deviation_bot = Percentage_yOpen_pyOpen_deviation_bot == percentage_range(Percentage_yOpen_pyOpen_deviation_bot, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yOpen_pyOpen_deviation_top = Percentage_yOpen_pyOpen_deviation_top == percentage_range(Percentage_yOpen_pyOpen_deviation_top, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_pmOpen_to_mOpen_mean_price = Percentage_pmOpen_to_mOpen_mean_price == percentage_range(Percentage_pmOpen_to_mOpen_mean_price, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_wOpen_to_pwOpen_mean_price = Percentage_wOpen_to_pwOpen_mean_price == percentage_range(Percentage_wOpen_to_pwOpen_mean_price, -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_pqOpen_to_qOpen_mean_price = Percentage_pqOpen_to_qOpen_mean_price == percentage_range(Percentage_pqOpen_to_qOpen_mean_price, -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_pyOpen_to_yOpen_mean_price = Percentage_pyOpen_to_yOpen_mean_price  == percentage_range(Percentage_pyOpen_to_yOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yLow_to_mOpen_mean_price = Percentage_yLow_to_mOpen_mean_price  == percentage_range(Percentage_yLow_to_mOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yOpen_to_qOpen_mean_price = Percentage_yOpen_to_qOpen_mean_price  == percentage_range(Percentage_yOpen_to_qOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_qOpen_to_mHigh_mean_price = Percentage_qOpen_to_mHigh_mean_price  == percentage_range(Percentage_qOpen_to_mHigh_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_qOpen_to_mLow_mean_price = Percentage_qOpen_to_mLow_mean_price  == percentage_range(Percentage_qOpen_to_mLow_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yLow_to_pmOpen_mean_price = Percentage_yLow_to_pmOpen_mean_price  == percentage_range(Percentage_yLow_to_pmOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yOpen_to_mOpen_mean_price = Percentage_yOpen_to_mOpen_mean_price  == percentage_range(Percentage_yOpen_to_mOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yHigh_to_mOpen_mean_price = Percentage_yHigh_to_mOpen_mean_price  == percentage_range(Percentage_yHigh_to_mOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_yHigh_to_pmOpen_mean_price  = Percentage_yHigh_to_pmOpen_mean_price  == percentage_range(Percentage_yHigh_to_pmOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_pyHigh_to_yLow_mean_price = Percentage_pyHigh_to_yLow_mean_price  == percentage_range(Percentage_pyHigh_to_yLow_mean_price , -Hiding_Price_range, +Hiding_Price_range)  
+show_Percentage_yHigh_to_yOpen_mean_price = Percentage_yHigh_to_yOpen_mean_price == percentage_range(Percentage_yHigh_to_yOpen_mean_price , -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_yOpen_to_pyLow_mean_price = Percentage_yOpen_to_pyLow_mean_price == percentage_range(Percentage_yOpen_to_pyLow_mean_price , -Hiding_Price_range, +Hiding_Price_range) 
+show_Percentage_yOpen_to_yLow_mean_price = Percentage_yOpen_to_yLow_mean_price == percentage_range(Percentage_yOpen_to_yLow_mean_price , -Hiding_Price_range, +Hiding_Price_range) 
+show_Percent_Upper_level_price = Percent_Upper_level_price == percentage_range(Percent_Upper_level_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percent_Lower_level_price = Percent_Lower_level_price == percentage_range(Percent_Lower_level_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_Yearly_AVWAP_price = Percentage_Yearly_AVWAP_price == percentage_range(Percentage_Yearly_AVWAP_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_YearlyH_AVWAP_price = Percentage_YearlyH_AVWAP_price == percentage_range(Percentage_YearlyH_AVWAP_price , -Hiding_Price_range, +Hiding_Price_range)
+show_Percentage_YearlyL_AVWAP_price = Percentage_YearlyL_AVWAP_price == percentage_range(Percentage_YearlyL_AVWAP_price , -Hiding_Price_range, +Hiding_Price_range)
+
+
+
+i_align_1 = 'left'
+i_align_2 = 'right'
+var PercentBlock = table.new(position=position.top_right, columns=4, rows=52, border_width=1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Monday_H
+    table.cell(table_id=PercentBlock, column=0, row=1, text=str.tostring(truncate(Monday_H,2)), text_color=Monday_H_TX_color, text_size=TextSize, bgcolor=Monday_H_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=1, text=str.tostring(truncate(Percentage_Monday_H,2)) + '%', text_color=Monday_H_TX_color, text_size=TextSize, bgcolor=Monday_H_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=1, text='to ' + str.tostring(dayrange_chosen) + ' H', text_color=Monday_H_TX_color, text_size=TextSize, bgcolor=Monday_H_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Monday_L  
+    table.cell(table_id=PercentBlock, column=0, row=2, text=str.tostring(truncate(Monday_L,2)) , text_color=Monday_L_TX_color, text_size=TextSize, bgcolor=Monday_L_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=2, text=str.tostring(truncate(Percentage_Monday_L,2)) + '%', text_color=Monday_L_TX_color, text_size=TextSize, bgcolor=Monday_L_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=2, text='to ' + str.tostring(dayrange_chosen) + ' L', text_color=Monday_L_TX_color, text_size=TextSize, bgcolor=Monday_L_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Monday_Mid    
+    table.cell(table_id=PercentBlock, column=0, row=5, text=str.tostring(truncate(Monday_Mid,2)), text_color=Monday_Mid_TX_color, text_size=TextSize, bgcolor=Monday_Mid_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=5, text=str.tostring(truncate(Percentage_Monday_Mid,2)) + '%', text_color=Monday_Mid_TX_color, text_size=TextSize, bgcolor=Monday_Mid_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=5, text='to ' + str.tostring(dayrange_chosen) + ' Mid', text_color=Monday_Mid_TX_color, text_size=TextSize, bgcolor=Monday_Mid_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_wOpen
+    table.cell(table_id=PercentBlock, column=0, row=6, text=str.tostring(truncate(wOpen,2)), text_color=wOpen_TX_color, text_size=TextSize, bgcolor=wOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=6, text=str.tostring(truncate(Percentage_wOpen,2)) + '%', text_color=wOpen_TX_color, text_size=TextSize, bgcolor=wOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=6, text='to wOpen', text_color=wOpen_TX_color, text_size=TextSize, bgcolor=wOpen_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_mOpen
+    table.cell(table_id=PercentBlock, column=0, row=7, text=str.tostring(truncate(mOpen,2)), text_color=mOpen_TX_color, text_size=TextSize, bgcolor=mOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=7, text=str.tostring(truncate(Percentage_mOpen,2)) + '%', text_color=mOpen_TX_color, text_size=TextSize, bgcolor=mOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=7, text='to mOpen', text_color=mOpen_TX_color, text_size=TextSize, bgcolor=mOpen_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Range_qOpen  
+    table.cell(table_id=PercentBlock, column=0, row=8, text=str.tostring(truncate(qOpen,2 )), text_color=qOpen_TX_color, text_size=TextSize, bgcolor=qOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=8, text=str.tostring(truncate(Percentage_qOpen,2)) + '%', text_color=qOpen_TX_color, text_size=TextSize, bgcolor=qOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=8, text='to qOpen', text_color=qOpen_TX_color, text_size=TextSize, bgcolor=qOpen_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Range_yOpen    
+    table.cell(table_id=PercentBlock, column=0, row=9, text=str.tostring(truncate(yOpen,2)) , text_color=yOpen_TX_color, text_size=TextSize, bgcolor=yOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=9, text=str.tostring(truncate(Percentage_yOpen, 2)) + '%', text_color=yOpen_TX_color, text_size=TextSize, bgcolor=yOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=9, text='to yOpen', text_color=yOpen_TX_color, text_size=TextSize, bgcolor=yOpen_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_yHigh   
+    table.cell(table_id=PercentBlock, column=0, row=10, text=str.tostring(truncate(yHigh,2)), text_color=yHigh_TX_color, text_size=TextSize, bgcolor=yHigh_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=10, text=str.tostring(truncate(Percentage_yHigh,2 )) + '%', text_color=yHigh_TX_color, text_size=TextSize, bgcolor=yHigh_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=10, text='to yHigh', text_color=yHigh_TX_color, text_size=TextSize, bgcolor=yHigh_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Range_yLow        
+    table.cell(table_id=PercentBlock, column=0, row=11, text=str.tostring(truncate(yLow,2)), text_color=yLow_TX_color, text_size=TextSize, bgcolor=yLow_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=11, text=str.tostring(truncate(Percentage_yLow,2)) + '%', text_color=yLow_TX_color, text_size=TextSize, bgcolor=yLow_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=11, text='to yLow', text_color=yLow_TX_color, text_size=TextSize, bgcolor=yLow_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_pwOpen   
+    table.cell(table_id=PercentBlock, column=0, row=12, text=str.tostring(truncate(pwOpen,2)) , text_color=pwOpen_TX_color, text_size=TextSize, bgcolor=pwOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=12, text=str.tostring(truncate(Percentage_pwOpen,2 )) + '%', text_color=pwOpen_TX_color, text_size=TextSize, bgcolor=pwOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=12, text='to pwOpen', text_color=pwOpen_TX_color, text_size=TextSize, bgcolor=pwOpen_BG_color,text_halign=i_align_1)  
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_pmOpen    
+    table.cell(table_id=PercentBlock, column=0, row=13, text=str.tostring(truncate(pmOpen,2)) , text_color=pmOpen_TX_color, text_size=TextSize, bgcolor=pmOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=13, text=str.tostring(truncate(Percentage_pmOpen,2)) + '%', text_color=pmOpen_TX_color, text_size=TextSize, bgcolor=pmOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=13, text='to pmOpen', text_color=pmOpen_TX_color, text_size=TextSize, bgcolor=pmOpen_BG_color,text_halign=i_align_1)    
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_pqOpen     
+    table.cell(table_id=PercentBlock, column=0, row=14, text=str.tostring(truncate(pqOpen,2 )) , text_color=pqOpen_TX_color, text_size=TextSize, bgcolor=pqOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=14, text=str.tostring(truncate(Percentage_pqOpen,2)) + '%', text_color=pqOpen_TX_color, text_size=TextSize, bgcolor=pqOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=14, text='to pqOpen', text_color=pqOpen_TX_color, text_size=TextSize, bgcolor=pqOpen_BG_color,text_halign=i_align_1)     
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Range_pyOpen  
+    table.cell(table_id=PercentBlock, column=0, row=15, text=str.tostring(truncate(pyOpen,2)) , text_color=pyOpen_TX_color, text_size=TextSize, bgcolor=pyOpen_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=15, text=str.tostring(truncate(Percentage_pyOpen,2)) + '%', text_color=pyOpen_TX_color, text_size=TextSize, bgcolor=pyOpen_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=15, text='to pyOpen', text_color=pyOpen_TX_color, text_size=TextSize, bgcolor=pyOpen_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Range_pyHigh   
+    table.cell(table_id=PercentBlock, column=0, row=16, text=str.tostring(truncate(pyHigh,2)), text_color=pyHigh_TX_color, text_size=TextSize, bgcolor=pyHigh_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=16, text=str.tostring(truncate(Percentage_pyHigh,2)) + '%', text_color=pyHigh_TX_color, text_size=TextSize, bgcolor=pyHigh_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=16, text='to pyHigh', text_color=pyHigh_TX_color, text_size=TextSize, bgcolor=pyHigh_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Range_pyLow     
+    table.cell(table_id=PercentBlock, column=0, row=17, text=str.tostring(truncate(pyLow, 2)), text_color=pyLow_TX_color, text_size=TextSize, bgcolor=pyLow_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=17, text=str.tostring(truncate(Percentage_pyLow, 2)) + '%', text_color=pyLow_TX_color, text_size=TextSize, bgcolor=pyLow_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=17, text='to pyLow', text_color=pyLow_TX_color, text_size=TextSize, bgcolor=pyLow_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_wOpen_pwOpen_deviation_bot  
+    table.cell(table_id=PercentBlock, column=0, row=18, text=str.tostring(truncate(wOpen_pwOpen_Deviation,2)) , text_color=wOpen_pwOpen_Deviation_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=18, text=str.tostring(truncate(Percentage_wOpen_pwOpen_deviation_bot, 2)) + '%', text_color=wOpen_pwOpen_Deviation_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=18, text='to wOpen-pwOpen Dev Bot', text_color=wOpen_pwOpen_Deviation_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_wOpen_pwOpen_deviation_top    
+    table.cell(table_id=PercentBlock, column=0, row=19, text=str.tostring(truncate(wOpen_pwOpen_Deviation_top, 2)), text_color=wOpen_pwOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_top_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=19, text=str.tostring(truncate(Percentage_wOpen_pwOpen_deviation_top,2)) + '%', text_color=wOpen_pwOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_top_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=19, text='to wOpen-pwOpen Dev Top', text_color=wOpen_pwOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=wOpen_pwOpen_Deviation_top_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_mOpen_pmOpen_deviation_bot   
+    table.cell(table_id=PercentBlock, column=0, row=20, text=str.tostring(truncate(mOpen_pmOpen_Deviation, 2)) , text_color=mOpen_pmOpen_Deviation_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=20, text=str.tostring(truncate(Percentage_mOpen_pmOpen_deviation_bot, 2)) + '%', text_color=mOpen_pmOpen_Deviation_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=20, text='to mOpen-pmOpen Dev Bot', text_color=mOpen_pmOpen_Deviation_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_mOpen_pmOpen_deviation_top       
+    table.cell(table_id=PercentBlock, column=0, row=21, text=str.tostring(truncate(mOpen_pmOpen_Deviation_top, 2)) , text_color=mOpen_pmOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_top_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=21, text=str.tostring(truncate(Percentage_mOpen_pmOpen_deviation_top, 2)) + '%', text_color=mOpen_pmOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_top_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=21, text='to mOpen-pmOpen Dev Top', text_color=mOpen_pmOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=mOpen_pmOpen_Deviation_top_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yOpen_pyOpen_deviation_bot   
+    table.cell(table_id=PercentBlock, column=0, row=22, text=str.tostring(truncate(yOpen_pyOpen_Deviation, 2)) , text_color=yOpen_pyOpen_Deviation_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=22, text=str.tostring(truncate(Percentage_yOpen_pyOpen_deviation_bot, 2)) + '%', text_color=yOpen_pyOpen_Deviation_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=22, text='to yOpen-pyOpen Dev Bot', text_color=yOpen_pyOpen_Deviation_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yOpen_pyOpen_deviation_top   
+    table.cell(table_id=PercentBlock, column=0, row=23, text=str.tostring(truncate(yOpen_pyOpen_Deviation_top, 2)), text_color=yOpen_pyOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_top_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=23, text=str.tostring(truncate(Percentage_yOpen_pyOpen_deviation_top, 2)) + '%', text_color=yOpen_pyOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_top_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=23, text='to yOpen-pyOpen Dev Top', text_color=yOpen_pyOpen_Deviation_top_TX_color, text_size=TextSize, bgcolor=yOpen_pyOpen_Deviation_top_BG_color,text_halign=i_align_1) 
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_pmOpen_to_mOpen_mean_price  
+    table.cell(table_id=PercentBlock, column=0, row=24, text=str.tostring(truncate(pmOpen_to_mOpen_mean_price, 2)) , text_color=pmOpen_to_mOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pmOpen_to_mOpen_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=24, text=str.tostring(truncate(Percentage_pmOpen_to_mOpen_mean_price, 2)) + ' % ', text_color=pmOpen_to_mOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pmOpen_to_mOpen_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=24, text='to mOpen-pmOpen Mean', text_color=pmOpen_to_mOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pmOpen_to_mOpen_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_wOpen_to_pwOpen_mean_price    
+    table.cell(table_id=PercentBlock, column=0, row=25, text=str.tostring(truncate(wOpen_to_pwOpen_mean_price, 2)), text_color=wOpen_to_pwOpen_mean_price_TX_color, text_size=TextSize, bgcolor=wOpen_to_pwOpen_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=25, text=str.tostring(truncate(Percentage_wOpen_to_pwOpen_mean_price, 2)) + '%', text_color=wOpen_to_pwOpen_mean_price_TX_color, text_size=TextSize, bgcolor=wOpen_to_pwOpen_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=25, text='to wOpen-pwOpen Mean', text_color=wOpen_to_pwOpen_mean_price_TX_color, text_size=TextSize, bgcolor=wOpen_to_pwOpen_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_pqOpen_to_qOpen_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=26, text=str.tostring(truncate(pqOpen_to_qOpen_mean_price, 2)), text_color=pqOpen_to_qOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pqOpen_to_qOpen_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=26, text=str.tostring(truncate(Percentage_pqOpen_to_qOpen_mean_price, 2)) + ' %', text_color=pqOpen_to_qOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pqOpen_to_qOpen_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=26, text='to qOpen-pqOpen Mean', text_color=pqOpen_to_qOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pqOpen_to_qOpen_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_pyOpen_to_yOpen_mean_price  
+    table.cell(table_id=PercentBlock, column=0, row=27, text=str.tostring(truncate(pyOpen_to_yOpen_mean_price, 2)), text_color=pyOpen_to_yOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pyOpen_to_yOpen_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=27, text=str.tostring(truncate(Percentage_pyOpen_to_yOpen_mean_price, 2)) + '%', text_color=pyOpen_to_yOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pyOpen_to_yOpen_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=27, text='to yOpen-pyOpen Mean', text_color=pyOpen_to_yOpen_mean_price_TX_color, text_size=TextSize, bgcolor=pyOpen_to_yOpen_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yLow_to_mOpen_mean_price  
+    table.cell(table_id=PercentBlock, column=0, row=28, text=str.tostring(truncate(yLow_to_mOpen_mean_price,  2)), text_color=yLow_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_mOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=28, text=str.tostring(truncate(Percentage_yLow_to_mOpen_mean_price,  2)) + '%', text_color=yLow_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_mOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=28, text='to yLow-mOpen Mean', text_color=yLow_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_mOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yOpen_to_qOpen_mean_price  
+    table.cell(table_id=PercentBlock, column=0, row=29, text=str.tostring(truncate(yOpen_to_qOpen_mean_price,  2)) , text_color=yOpen_to_qOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_qOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=29, text=str.tostring(truncate(Percentage_yOpen_to_qOpen_mean_price,  2)) + '%', text_color=yOpen_to_qOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_qOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=29, text='to yOpen-qOpen Mean', text_color=yOpen_to_qOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_qOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0   and show_Percentage_qOpen_to_mHigh_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=30, text=str.tostring(truncate(qOpen_to_mHigh_mean_price,  2)) , text_color=qOpen_to_mHigh_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mHigh_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=30, text=str.tostring(truncate(Percentage_qOpen_to_mHigh_mean_price, 2)) + '%', text_color=qOpen_to_mHigh_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mHigh_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=30, text='to qOpen-mHigh Mean', text_color=qOpen_to_mHigh_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mHigh_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_qOpen_to_mLow_mean_price    
+    table.cell(table_id=PercentBlock, column=0, row=31, text=str.tostring(truncate(qOpen_to_mLow_mean_price, 2)), text_color=qOpen_to_mLow_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mLow_mean_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=31, text=str.tostring(truncate(Percentage_qOpen_to_mLow_mean_price,  2)) + '%', text_color=qOpen_to_mLow_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mLow_mean_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=31, text='to qOpen -mLow Mean', text_color=qOpen_to_mLow_mean_price_TX_color, text_size=TextSize, bgcolor=qOpen_to_mLow_mean_price_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yLow_to_pmOpen_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=32, text=str.tostring(truncate(yLow_to_pmOpen_mean_price,  2)), text_color=yLow_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_pmOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=32, text=str.tostring(truncate(Percentage_yLow_to_pmOpen_mean_price,  2)) + '%', text_color=yLow_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_pmOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=32, text='to yLow-pmOpen Mean', text_color=yLow_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yLow_to_pmOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yOpen_to_mOpen_mean_price     
+    table.cell(table_id=PercentBlock, column=0, row=33, text=str.tostring(truncate(yOpen_to_mOpen_mean_price,  2)), text_color=yOpen_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_mOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=33, text=str.tostring(truncate(Percentage_yOpen_to_mOpen_mean_price,  2)) + '%', text_color=yOpen_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_mOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=33, text='to yOpen-mOpen Mean', text_color=yOpen_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_mOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0   and show_Percentage_yHigh_to_mOpen_mean_price    
+    table.cell(table_id=PercentBlock, column=0, row=34, text=str.tostring(truncate(yHigh_to_mOpen_mean_price,  2)), text_color=yHigh_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_mOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=34, text=str.tostring(truncate(Percentage_yHigh_to_mOpen_mean_price,  2)) + '%', text_color=yHigh_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_mOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=34, text='to yHigh-mOpen Mean', text_color=yHigh_to_mOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_mOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yHigh_to_pmOpen_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=35, text=str.tostring(truncate(yHigh_to_pmOpen_mean_price,  2)), text_color=yHigh_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_pmOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=35, text=str.tostring(truncate(Percentage_yHigh_to_pmOpen_mean_price, 2)) + '%', text_color=yHigh_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_pmOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=35, text='to yHigh-pmOpen Mean', text_color=yHigh_to_pmOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_pmOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_pyHigh_to_yLow_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=36, text=str.tostring(truncate(pyHigh_to_yLow_mean_price,  2)), text_color=pyHigh_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=pyHigh_to_yLow_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=36, text=str.tostring(truncate(Percentage_pyHigh_to_yLow_mean_price,  2)) + '%', text_color=pyHigh_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=pyHigh_to_yLow_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=36, text='to pyHigh-yLow Mean', text_color=pyHigh_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=pyHigh_to_yLow_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0   and show_Percentage_yHigh_to_yOpen_mean_price   
+    table.cell(table_id=PercentBlock, column=0, row=37, text=str.tostring(truncate(yHigh_to_yOpen_mean_price,  2)), text_color=yHigh_to_yOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_yOpen_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=37, text=str.tostring(truncate(Percentage_yHigh_to_yOpen_mean_price,  2)) + '%', text_color=yHigh_to_yOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_yOpen_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=37, text='to yHigh-yOpen Mean', text_color=yHigh_to_yOpen_mean_TX_color, text_size=TextSize, bgcolor=yHigh_to_yOpen_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_yOpen_to_pyLow_mean_price     
+    table.cell(table_id=PercentBlock, column=0, row=38, text=str.tostring(truncate(yOpen_to_pyLow_mean_price,  2)), text_color=yOpen_to_pyLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_pyLow_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=38, text=str.tostring(truncate(Percentage_yOpen_to_pyLow_mean_price,  2)) + '%', text_color=yOpen_to_pyLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_pyLow_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=38, text='to yOpen-pyLow Mean', text_color=yOpen_to_pyLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_pyLow_mean_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_yOpen_to_yLow_mean_price 
+    table.cell(table_id=PercentBlock, column=0, row=39, text=str.tostring(truncate(yOpen_to_yLow_mean_price,  2)), text_color=yOpen_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_yLow_mean_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=39, text=str.tostring(truncate(Percentage_yOpen_to_yLow_mean_price,  2)) + '%', text_color=yOpen_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_yLow_mean_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=39, text='to yOpen-yLow Mean', text_color=yOpen_to_yLow_mean_TX_color, text_size=TextSize, bgcolor=yOpen_to_yLow_mean_BG_color,text_halign=i_align_1)  
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percent_Upper_level_price   
+    table.cell(table_id=PercentBlock, column=0, row=40, text=str.tostring(truncate(Upper_level_price,  2)), text_color=Upper_level_TX_color, text_size=TextSize, bgcolor=Upper_level_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=40, text=str.tostring(truncate(Percent_Upper_level_price,  2)) + '%', text_color=Upper_level_TX_color, text_size=TextSize, bgcolor=Upper_level_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=40, text='to ' + str.tostring(Upper_Level), text_color=Upper_level_TX_color, text_size=TextSize, bgcolor=Upper_level_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percent_Lower_level_price 
+    table.cell(table_id=PercentBlock, column=0, row=41, text=str.tostring(truncate(Lower_level_price, 2)), text_color=Lower_level_TX_color, text_size=TextSize, bgcolor=Lower_level_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=41, text=str.tostring(truncate(Percent_Lower_level_price, 2)) + '%', text_color=Lower_level_TX_color, text_size=TextSize, bgcolor=Lower_level_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=41, text='to ' + str.tostring(Lower_Level), text_color=Lower_level_TX_color, text_size=TextSize, bgcolor=Lower_level_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Yearly_AVWAP_price and show5   
+    table.cell(table_id=PercentBlock, column=0, row=42, text=str.tostring(truncate(Yearly_AVWAP, 2)) , text_color=Yearly_AVWAP_TX_color, text_size=TextSize, bgcolor=Yearly_AVWAP_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=42, text=str.tostring(truncate(Percentage_Yearly_AVWAP_price, 2)) + '%', text_color=Yearly_AVWAP_TX_color, text_size=TextSize, bgcolor=Yearly_AVWAP_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=42, text='to yAVWAP', text_color=Yearly_AVWAP_TX_color, text_size=TextSize, bgcolor=Yearly_AVWAP_BG_color,text_halign=i_align_1)  
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_YearlyH_AVWAP_price and show5    
+    table.cell(table_id=PercentBlock, column=0, row=43, text=str.tostring(truncate(YearlyH_AVWAP, 2)) , text_color=YearlyH_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyH_AVWAP_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=43, text=str.tostring(truncate(Percentage_YearlyH_AVWAP_price, 2)) + '%', text_color=YearlyH_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyH_AVWAP_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=43, text='to yHighAVWAP', text_color=YearlyH_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyH_AVWAP_BG_color,text_halign=i_align_1)
+
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_YearlyL_AVWAP_price and show5
+    table.cell(table_id=PercentBlock, column=0, row=44, text=str.tostring(truncate(YearlyL_AVWAP, 2)), text_color=YearlyL_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyL_AVWAP_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=44, text=str.tostring(truncate(Percentage_YearlyL_AVWAP_price, 2)) + '%', text_color=YearlyL_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyL_AVWAP_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=44, text='to yLowAVWAP', text_color=YearlyL_AVWAP_TX_color, text_size=TextSize, bgcolor=YearlyL_AVWAP_BG_color,text_halign=i_align_1)    
+    
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Monday_H_wLow_Deviation_bot  
+    table.cell(table_id=PercentBlock, column=0, row=45, text=str.tostring(truncate(Monday_H_wLow_Deviation, 2)) , text_color=Monday_H_wLow_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=45, text=str.tostring(truncate(Percentage_Monday_H_wLow_Deviation_bot , 2)) + '%', text_color=Monday_H_wLow_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=45, text='to MondayH-wLow Dev Top', text_color=Monday_H_wLow_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Monday_H_wLow_Deviation_top    
+    table.cell(table_id=PercentBlock, column=0, row=46, text=str.tostring(truncate(Monday_H_wLow_Deviation_top, 2)), text_color=Monday_H_wLow_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_top_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=46, text=str.tostring(truncate(Percentage_Monday_H_wLow_Deviation_top, 2)) + '%', text_color=Monday_H_wLow_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_top_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=46, text='to MondayH-wLow Dev Bot', text_color=Monday_H_wLow_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_H_wLow_Deviation_top_BG_color,text_halign=i_align_1)    
+    
+if barstate.islast and array.size(global_high_array) > 0  and show_Percentage_Monday_L_wHigh_Deviation_bot  
+    table.cell(table_id=PercentBlock, column=0, row=47, text=str.tostring(truncate(Monday_L_wHigh_Deviation, 2)) , text_color=Monday_L_wHigh_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=47, text=str.tostring(truncate(Percentage_Monday_L_wHigh_Deviation_bot , 2)) + '%', text_color=Monday_L_wHigh_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=47, text='to MondayL-wHigh Dev Bot', text_color=Monday_L_wHigh_Deviation_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_BG_color,text_halign=i_align_1)
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percentage_Monday_L_wHigh_Deviation_top    
+    table.cell(table_id=PercentBlock, column=0, row=48, text=str.tostring(truncate(Monday_L_wHigh_Deviation_top,2)), text_color=Monday_L_wHigh_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_top_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=48, text=str.tostring(truncate(Percentage_Monday_L_wHigh_Deviation_top, 2)) + '%', text_color=Monday_L_wHigh_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_top_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=48, text='to MondayL-wHigh Dev Top', text_color=Monday_L_wHigh_Deviation_top_TX_color, text_size=TextSize, bgcolor=Monday_L_wHigh_Deviation_top_BG_color,text_halign=i_align_1)   
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percent_Vol_node_01   
+    table.cell(table_id=PercentBlock, column=0, row=48, text=str.tostring(truncate(Vol_node_01_price,2)), text_color=Vol_node_01_price_TX_color, text_size=TextSize, bgcolor=Vol_node_01_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=48, text=str.tostring(truncate(Percent_Vol_node_01_price, 2)) + '%', text_color=Vol_node_01_price_TX_color, text_size=TextSize, bgcolor=Vol_node_01_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=48, text='vNode', text_color=Vol_node_01_price_TX_color, text_size=TextSize, bgcolor=Vol_node_01_price_BG_color,text_halign=i_align_1)     
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percent_Vol_node_02  
+    table.cell(table_id=PercentBlock, column=0, row=49, text=str.tostring(truncate(Vol_node_02_price,2)), text_color=Vol_node_02_price_TX_color, text_size=TextSize, bgcolor=Vol_node_02_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=49, text=str.tostring(truncate(Percent_Vol_node_02_price, 2)) + '%', text_color=Vol_node_02_price_TX_color, text_size=TextSize, bgcolor=Vol_node_02_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=49, text='vNode', text_color=Vol_node_02_price_TX_color, text_size=TextSize, bgcolor=Vol_node_02_price_BG_color,text_halign=i_align_1) 
+    
+if barstate.islast and array.size(global_high_array) > 0 and show_Percent_Vol_node_03  
+    table.cell(table_id=PercentBlock, column=0, row=50, text=str.tostring(truncate(Vol_node_03_price,2)), text_color=Vol_node_03_price_TX_color, text_size=TextSize, bgcolor=Vol_node_03_price_BG_color,text_halign=i_align_1)
+    table.cell(table_id=PercentBlock, column=1, row=50, text=str.tostring(truncate(Percent_Vol_node_03_price, 2)) + '%', text_color=Vol_node_03_price_TX_color, text_size=TextSize, bgcolor=Vol_node_03_price_BG_color,text_halign=i_align_2)
+    table.cell(table_id=PercentBlock, column=2, row=50, text='vNode', text_color=Vol_node_03_price_TX_color, text_size=TextSize, bgcolor=Vol_node_03_price_BG_color,text_halign=i_align_1)  
+    
+if barstate.islast and array.size(global_high_array) > 0  
+    table.cell(table_id=PercentBlock, column=2, row=51, text='Confluence Factor: ' + str.tostring(C1) +' | '+ str.tostring(Confluence), text_color=Vol_node_03_price_TX_color, text_size=TextSize, bgcolor=Confluence_col,text_halign=i_align_1)
